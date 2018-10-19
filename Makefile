@@ -3,6 +3,7 @@ OBJECTS=$(MODULES:=.cmo)
 MLS=$(MODULES:=.ml)
 MLIS=$(MODULES:=.mli)
 TEST=test.byte
+MAIN=main.byte
 OCAMLBUILD=ocamlbuild -use-ocamlfind
 PKGS=oUnit,unix,yojson
 
@@ -10,7 +11,7 @@ default: build
 	utop
 	
 build: 
-	$(OCAMLBUILD) $(OBJECTS) main.native
+	$(OCAMLBUILD) $(OBJECTS) $(MAIN)
 
 test:
 	$(OCAMLBUILD) -tag debug $(TEST) && ./$(TEST)
@@ -30,4 +31,4 @@ docs-private: build
 
 clean:
 	ocamlbuild -clean
-	rm -rf doc.public doc.private
+	rm -rf doc.public doc.private .git-ml

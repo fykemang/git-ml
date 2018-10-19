@@ -1,3 +1,9 @@
 open Unix
 
-let init () = mkdir ".git-ml" 0o640
+let init () = try 
+    mkdir ".git-ml" 0o777;
+    chdir ".git-ml";
+    mkdir "objects" 0o777;
+  with 
+  | Unix_error (EEXIST, func, file) -> 
+    print_endline (file ^ " already exists."); 
