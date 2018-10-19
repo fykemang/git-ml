@@ -1,1 +1,1 @@
-true: package(oUnit)
+true: package(oUnit),package(unix),package(yojson)
