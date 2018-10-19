@@ -1,4 +1,4 @@
-MODULES=authors main
+MODULES=authors main commands
 OBJECTS=$(MODULES:=.cmo)
 MLS=$(MODULES:=.ml)
 MLIS=$(MODULES:=.mli)

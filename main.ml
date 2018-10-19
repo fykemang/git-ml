@@ -1,7 +1,8 @@
 open Arg
+open Commands
 
 let specs = [
-  ("init", String (fun s -> ()), "Intialize a version-control repository.")
+  ("-init", Unit (fun () -> init ()), "Intialize a version-control repository.")
 ]
 
 let main = begin
