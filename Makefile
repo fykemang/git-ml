@@ -6,6 +6,9 @@ TEST=test.byte
 OCAMLBUILD=ocamlbuild -use-ocamlfind
 PKGS=oUnit
 
+default: build
+	utop
+	
 build: 
 	$(OCAMLBUILD) $(OBJECTS)
 
