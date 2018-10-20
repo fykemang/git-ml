@@ -1,9 +1,13 @@
-open Unix
 
-let init () = try 
-    mkdir ".git-ml" 0o777;
-    chdir ".git-ml";
-    mkdir "objects" 0o777;
+let init () = begin
+  try 
+    Unix.mkdir ".git-ml" 0o700;
+    Unix.chdir ".git-ml";
+    Unix.mkdir "objects" 0o700;
   with 
-  | Unix_error (EEXIST, func, file) -> 
+  | Unix.Unix_error (EEXIST, func, file) -> 
     print_endline (file ^ " already exists."); 
+end
+
+let hash_object s =
+  s |> Digest.string |> Digest.to_hex |> print_endline
