@@ -3,7 +3,7 @@ open Commands
 
 let specs = [
   ("-init", Unit (fun () -> init ()), "Intialize a version-control repository.");
-  ("-hash", String (fun s -> hash_object s), "Hashes a object")
+  ("-hash-object", String (fun s -> hash_object s), "Hashes a object")
 ]
 
 let main = begin

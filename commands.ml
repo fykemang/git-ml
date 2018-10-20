@@ -1,4 +1,3 @@
-
 let init () = begin
   try 
     Unix.mkdir ".git-ml" 0o700;
