@@ -1,14 +1,19 @@
 open Arg
 open Commands
 
-let specs = [
-  ("-init", Unit (fun () -> init ()), "Intialize a version-control repository.");
-  ("-hash-object", Arg.Rest (hash_object), "Hashes a object")
-]
+let specs = ref [
+    ("-init", Unit (fun () -> init ()), 
+     ": Initialize a git-ml repository in the current directory.");
+    ("-hash-object", Arg.Rest (hash_object), 
+     ": Hashes a object and returns the hash.")
+  ]
 
 let main = begin
-  let usage_msg = "Hello World! This is a test." in
-  parse specs print_endline usage_msg;
+  let usage_msg = "Usage: " ^ Sys.argv.(0) ^ "[-init] [-hash-object string]" in
+  parse_dynamic
+    specs 
+    (fun x -> raise (Arg.Bad ("Bad Argument " ^ x ^ "."))) 
+    usage_msg;
 end
 
 let () = main
