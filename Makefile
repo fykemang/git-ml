@@ -1,4 +1,4 @@
-MODULES=authors main commands
+MODULES=authors main commands gitTree
 OBJECTS=$(MODULES:=.cmo)
 MLS=$(MODULES:=.ml)
 MLIS=$(MODULES:=.mli)
