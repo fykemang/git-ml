@@ -6,4 +6,5 @@ let init () = try
     mkdir "objects" 0o777;
   with 
   | Unix_error (EEXIST, func, file) -> 
-    print_endline (file ^ " already exists."); 
+    print_endline (file ^ " already exists.");
+
