@@ -1,23 +1,26 @@
 open Arg
 open Commands
 
-let args = ref ""
+let hash_spec_list = [
+  ("-w", String (hash_object), "");
+  ("-d", String (hash_object), "")
+]
 
-let spec_list = [
+let rec spec_list = ref [
     ("-init", Unit (fun () -> init ()), 
      ": Initialize a git-ml repository in the current directory.");
-    ("-hash-object", Arg.Set_string (args), 
-     ": Hashes a object and returns the hash.")
+    ("-hash-object",  Unit (
+        fun () -> spec_list := (!spec_list @ hash_spec_list)
+      ), 
+     ": Hashes a object and returns the hash.");
   ]
 
 let main = begin
-  let usage_msg = "Usage: " ^ Sys.argv.(0) ^ "[-init] [-hash-object string]" in
-  parse
+  let usage_msg = "These are git.ml commands" in
+  parse_dynamic
     spec_list 
     (fun x -> raise (Arg.Bad ("Bad Argument " ^ x ^ "."))) 
     usage_msg;
 end
-
-let () = print_endline !args 
 
 let () = main
