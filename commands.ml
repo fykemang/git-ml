@@ -1,4 +1,5 @@
-open GitTree 
+open GitTree
+open Unix
 
 type filename = string
 type file_content = string
@@ -7,9 +8,14 @@ type git_index = filename * file_content list
 let init () = begin
   try
     let curr_dir = Unix.getcwd () in
-    Unix.mkdir ".git-ml" 0o700;
-    Unix.chdir ".git-ml";
-    Unix.mkdir "objects" 0o700;
+    mkdir ".git-ml" 0o700;
+    chdir ".git-ml";
+    openfile "index" [Unix.O_WRONLY; Unix.O_CREAT] 0o666;
+    openfile "HEAD" [Unix.O_WRONLY; Unix.O_CREAT] 0o666;
+    mkdir "objects" 0o700;
+    mkdir "info" 0o700;
+    mkdir "refs" 0o700;
+    mkdir "branches" 0o700;
     print_endline ("Initialized git-ml repository in " ^ curr_dir);
   with
   | Unix.Unix_error (EEXIST, func, file) ->
@@ -21,7 +27,7 @@ let hash_object s =
   else s |> Digest.string |> Digest.to_hex |> print_endline
 
 (** [hash_string s] is the md5 hash of string s*)
-let hash_string s = 
+let hash_string s =
   s |> Digest.string |> Digest.to_hex
 
 (** [index_to_tree index] is the [GitTree.t] of  the [git_index] [index]*)

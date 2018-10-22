@@ -1,4 +1,4 @@
-module type GitTreeSig = sig 
+
   (** [t] is the type of a git tree**)
   type t  
 
@@ -10,6 +10,3 @@ module type GitTreeSig = sig
 
   (** [empty] is the empty GitTree*)
   val empty : t
-end
-
-module GitTree : GitTreeSig 
