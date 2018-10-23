@@ -44,8 +44,6 @@ let add_file_to_tree name content (tree:GitTree.t) =
   in 
   add_file_to_tree_helper (String.split_on_char '/' name) content tree 
 
-
-
 let file_list_to_tree (file_list : file_object list) =
   let rec helper acc (lst : file_object list) = 
     match lst with 
