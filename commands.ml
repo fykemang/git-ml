@@ -23,19 +23,15 @@ let init () = begin
     print_endline (file ^ " already exists.");
 end
 
-let hash_object s =
-  if Sys.file_exists s then s |> Digest.file |> Digest.to_hex |> print_endline
-  else s |> Digest.string |> Digest.to_hex |> print_endline
+let print_hash s = print_endline (Util.hash_str s)
+
+let save_hash s = failwith "Unimplemented"
 
 let cat s = failwith "Unimplemented"
 
 let ls_tree s = failwith "Unimplemented"
 
 let log s = failwith "Unimplemented"
-
-(** [hash_string s] is the md5 hash of string s*)
-let hash_string s =
-  s |> Digest.string |> Digest.to_hex
 
 let add_file_to_tree name content (tree:GitTree.t) =
   let rec add_file_to_tree_helper name_lst content (tree:GitTree.t) = 
