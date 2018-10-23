@@ -4,7 +4,7 @@ open Util
 
 type filename = string
 type file_content = string
-type git_index = filename * file_content list
+type file_object = filename * file_content
 
 let init () = begin
   try
@@ -56,9 +56,10 @@ let add_file_to_tree name content (tree:GitTree.t) =
   in 
   add_file_to_tree_helper (String.split_on_char '/' name) content tree 
 
-
-(** [index_to_tree index] is the [GitTree.t] of  the [git_index] [index]*)
-let index_to_tree acc (index : git_index list) =
-  match index with 
-  |[] -> acc
-  |(file_name,file_content)::t -> add_file_to_tree file_name file_content acc
+let file_list_to_tree (file_list : file_object list) =
+  let rec helper acc (lst : file_object list) = 
+    match lst with 
+    |[] -> acc
+    |(file_name,file_content)::t -> 
+      helper (add_file_to_tree file_name file_content acc) t
+  in helper GitTree.empty_tree_object file_list
