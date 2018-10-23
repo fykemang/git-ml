@@ -1,6 +1,7 @@
 open Arg
 open Commands
 
+
 let hash_spec_list = [
   ("-w", String (print_hash), "");
   ("-d", String (print_hash), "");
@@ -14,7 +15,6 @@ let rec spec_list = ref [
       ),
      ": Hashes a object and returns the hash.");
   ]
-
 
 let main () = begin
   let usage_msg = "Git.ml Commands" in

@@ -10,12 +10,14 @@ let init () = begin
     let curr_dir = Unix.getcwd () in
     mkdir ".git-ml" 0o700;
     chdir ".git-ml";
-    openfile "index" [O_WRONLY; O_CREAT] 0o666;
     openfile "HEAD" [O_WRONLY; O_CREAT] 0o666;
     mkdir "objects" 0o700;
     mkdir "info" 0o700;
     mkdir "refs" 0o700;
     mkdir "branches" 0o700;
+    chdir "refs";
+    mkdir "heads" 0o700;
+    mkdir "tags" 0o700;
     print_endline (getcwd ());
     print_endline ("Initialized git-ml repository in " ^ curr_dir);
   with
