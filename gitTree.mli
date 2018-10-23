@@ -1,9 +1,15 @@
+(** A [git_object] is the type of the elements of a git tree
+    A Tree_Object : git_object is different from a GitTree.t *)
+type git_object =
+  |Tree_Object of string
+  |Blob of string
+  |File of string
+  |Commit of string
+  |Ref of string
+
 module type GitTreeSig = sig 
   (** [t] is the type of a git tree**)
   type t  
-
-  (** A [git_object] is the type of the elements of a git tree**)
-  type git_object
 
   (** [value t] gives the [git_object] at the root node of GitTree.t*)
   val value: t -> git_object 

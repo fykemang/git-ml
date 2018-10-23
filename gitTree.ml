@@ -1,6 +1,12 @@
+type git_object = 
+  |Tree_Object of string
+  |Blob of string
+  |File of string
+  |Commit of string
+  |Ref of string
+
 module type GitTreeSig = sig 
   type t  
-  type git_object
   val value: t -> git_object 
   val empty : t
   val empty_tree_object : t
@@ -11,13 +17,6 @@ module type GitTreeSig = sig
 end
 
 module GitTree : GitTreeSig = struct
-  (** A Tree_Object : git_object is different from a GitTree.t *)
-  type git_object = 
-    |Tree_Object of string
-    |Blob of string
-    |File of string
-    |Commit of string
-    |Ref of string
 
   type t = Leaf | Node of git_object * t list
   exception EmptyTreeException of string  
