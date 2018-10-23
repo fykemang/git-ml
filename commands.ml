@@ -3,7 +3,7 @@ open Unix
 
 type filename = string
 type file_content = string
-type git_index = filename * file_content list
+type git_index = filename * file_content
 
 let init () = begin
   try
@@ -31,6 +31,20 @@ let hash_object s =
 let hash_string s =
   s |> Digest.string |> Digest.to_hex
 
+let add_file_to_tree name content (tree:GitTree.t) =
+  let rec add_file_to_tree_helper name_lst content (tree:GitTree.t) = 
+    match name_lst with 
+    |[] -> tree 
+    |h::[] -> (GitTree.add_file h content tree)
+    |subdir::t -> GitTree.add_child_tree 
+                    ((GitTree.get_subdirectory_tree subdir tree) |> 
+                     add_file_to_tree_helper t content) tree   
+  in 
+  add_file_to_tree_helper (String.split_on_char '/' name) content tree 
+
+
 (** [index_to_tree index] is the [GitTree.t] of  the [git_index] [index]*)
-let index_to_tree (index : git_index) =
-  failwith "Unimplemented"
+let index_to_tree acc (index : git_index list) =
+  match index with 
+  |[] -> acc
+  |(file_name,file_content)::t -> add_file_to_tree file_name file_content acc
