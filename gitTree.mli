@@ -11,6 +11,9 @@ module type GitTreeSig = sig
   (** [empty] is the empty GitTree*)
   val empty : t
 
+  (** [empty_tree_object] is a tree with an empty [TreeObject "."]*)
+  val empty_tree_object: t
+
   (** [add child o t] is the [GitTree.t] with the child o added to the root node*)
   val add_child: git_object -> t -> t  
 

@@ -3,6 +3,7 @@ module type GitTreeSig = sig
   type git_object
   val value: t -> git_object 
   val empty : t
+  val empty_tree_object : t
   val add_child: git_object -> t -> t  
   val add_child_tree: t -> t -> t  
   val add_file: string -> string -> t -> t
@@ -23,6 +24,8 @@ module GitTree : GitTreeSig = struct
 
   let empty = Leaf
 
+  let empty_tree_object =
+    Node (Tree_Object ".", [])
   let equal_node_value n1 n2 = 
     match n1,n2 with
     |Leaf, Leaf -> true
