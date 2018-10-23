@@ -32,3 +32,5 @@ docs-private: build
 clean:
 	ocamlbuild -clean
 	rm -rf doc.public doc.private .git-ml
+
+rebuild: clean build
