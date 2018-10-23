@@ -5,6 +5,7 @@ val init : unit -> unit
 (** [print_hash s] prints out the hash of a given object *)
 val print_hash : string -> unit
 
+
 (** [cat s] is the content or type of an object given [s] its hashed 
     hex representation. *)
 val cat : string -> string

@@ -1,9 +1,10 @@
 open GitTree
 open Unix
+open Util
 
 type filename = string
 type file_content = string
-type git_index = filename * file_content
+type git_index = filename * file_content list
 
 let init () = begin
   try
@@ -27,7 +28,18 @@ let print_hash s = print_endline (Util.hash_str s)
 
 let save_hash s = failwith "Unimplemented"
 
-let cat s = failwith "Unimplemented"
+let read_file file = 
+
+  let rec read_dir handle s = 
+    try let cur_file = handle |> readdir in
+      let hash = Util.hash_file cur_file in
+      if hash=s then read_file cur_file 
+      else read_dir handle s with
+    | End_of_file -> let _ = handle |> closedir in raise Not_found
+
+let cat s = 
+  let handle = opendir ".git-ml/objects" in
+  read_dir handle s
 
 let ls_tree s = failwith "Unimplemented"
 
