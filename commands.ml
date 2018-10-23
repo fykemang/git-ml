@@ -30,18 +30,16 @@ let print_hash s = print_endline (Util.hash_str s)
 
 let save_hash s = failwith "Unimplemented"
 
-
-
 let rec read_file file_chnl s = 
   try let cur_line = file_chnl |> input_line in
-    let s = s^cur_line in
+    let s = s ^ cur_line in
     read_file file_chnl s with
   | End_of_file -> let _ = file_chnl |> close_in in s
 
 let rec read_dir handle s = 
   try let cur_file = handle |> readdir in
     let hash = Util.hash_file cur_file in
-    if hash=s then read_file (open_in cur_file) ""
+    if hash = s then read_file (open_in cur_file) ""
     else read_dir handle s with
   | End_of_file -> let _ = handle |> closedir in raise Not_found
 

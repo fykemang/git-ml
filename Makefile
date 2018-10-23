@@ -1,11 +1,11 @@
-MODULES=authors main commands gitTree util
+MODULES=authors main commands gitTree util parse
 OBJECTS=$(MODULES:=.cmo)
 MLS=$(MODULES:=.ml)
 MLIS=$(MODULES:=.mli)
 TEST=test.byte
 MAIN=main.byte
 OCAMLBUILD=ocamlbuild -use-ocamlfind
-PKGS=oUnit,unix,yojson
+PKGS=oUnit,unix,yojson,str
 
 default: build
 	utop

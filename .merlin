@@ -2,3 +2,4 @@ B _build
 PKG oUnit
 PKG unix
 PKG yojson
+PKG str

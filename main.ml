@@ -1,8 +1,25 @@
 open Arg
 open Commands
+open Parse
 
+let verb_list = [
+  {
+    name = "hash-object"; 
+    usage = "Hashes a file."; 
+    default = Parse.String (print_hash);
+    tags = [
+        ("-t", Parse.String (print_hash))
+      ]
+  };
+  {
+    name = "cat-file";
+    usage = "Looks for a file based on id.";
+    default = Parse.String (print_hash);
+    tags = []
+  }
+]
 
-let hash_spec_list = [
+(* let hash_spec_list = [
   ("-w", String (print_hash), "");
   ("-d", String (print_hash), "");
 ]
@@ -14,14 +31,10 @@ let rec spec_list = ref [
         fun () -> spec_list := hash_spec_list
       ),
      ": Hashes a object and returns the hash.");
-  ]
+  ] *)
 
 let main () = begin
-  let usage_msg = "Git.ml Commands" in
-  parse_dynamic
-    spec_list
-    (fun x -> raise (Arg.Bad ("Bad Argument " ^ x ^ "."))) 
-    usage_msg;
+  parse "git-ml [command] [tags...] [args...]" verb_list
 end
 
 let () = main ()
