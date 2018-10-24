@@ -1,3 +1,5 @@
+let hash_str s = s |> Digest.string |> Digest.to_hex
+
 type git_object = 
   |Tree_Object of string
   |Blob of string
@@ -14,6 +16,7 @@ module type GitTreeSig = sig
   val add_child_tree: t -> t -> t  
   val add_file: string -> string -> t -> t
   val get_subdirectory_tree: string -> t -> t 
+  val hash_file_subtree: t -> unit 
 end
 
 module GitTree : GitTreeSig = struct
@@ -25,6 +28,7 @@ module GitTree : GitTreeSig = struct
 
   let empty_tree_object =
     Node (Tree_Object ".", [])
+
   let equal_node_value n1 n2 = 
     match n1,n2 with
     |Leaf, Leaf -> true
@@ -61,5 +65,20 @@ module GitTree : GitTreeSig = struct
                        (Node ((File filename), 
                               (Node ((Blob file_content),[])::[]))) 
                        (Node (o,lst))
+
+  let tree_children_content (lst:t list) : string =
+    failwith "Unimplemented"
+
+  let rec hash_file_subtree = function
+    |Leaf -> ()
+    |Node(o,lst) -> match o with 
+      |Tree_Object s -> let hash_addr = (hash_str "Tree Object "^s) in 
+        let fold_header = String.sub hash_addr 0 2  in
+        let fold_footer = 
+          String.sub hash_addr 2 (String.length hash_addr - 2) in
+        let oc = open_out (".git-ml/objects/"^fold_header^"/"^fold_footer) in
+        output_string oc (tree_children_content lst);
+        let () = close_out oc in () 
+      |_ -> failwith "Unimplented"
 
 end
