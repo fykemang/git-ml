@@ -39,9 +39,15 @@ let get_subdirectory_tree (subdirectory:string) = function
   | Leaf ->  Node(Tree_Object (subdirectory),[])
   | Node (_,lst) -> get_subdirectory_helper subdirectory lst   
 
+(** Ensures child lists do not have duplicate children *)
+let rec add_subtree_to_list tree = function
+  | [] -> tree::[]
+  | h::t when equal_node_value h tree -> tree::t
+  | h::t -> h::(add_subtree_to_list tree t)
+
 let add_child_tree (subtree:t) = function
   | Leaf -> subtree
-  | Node(o,lst) -> Node(o,subtree::lst)
+  | Node(o,lst) -> Node(o,(add_subtree_to_list subtree lst))
 
 let add_file (filename:string) (file_content:string) = function
   | Leaf -> 
@@ -53,17 +59,31 @@ let add_file (filename:string) (file_content:string) = function
                              (Node ((Blob file_content),[])::[]))) 
                       (Node (o,lst))
 
+let string_of_git_object (o:git_object)=
+  match o with
+  |Tree_Object s -> s
+  |Blob s -> s
+  |File s -> s
+  |Commit s -> s
+  |Ref s -> s
+
 let rec tree_children_content (lst:t list) : string =
   match lst with
   | [] -> ""
-  | h::t -> match (value h) with 
-    | Tree_Object s -> "Tree_Object " ^ (hash_str ("Tree Object " ^ s)) ^ "\n" ^
-                       (tree_children_content t)
-    | File s -> "File " ^ (hash_str ("File " ^ s)) ^ "\n" ^
-                (tree_children_content t) 
-    | _ -> raise (InvalidContentException 
-                    ("Tree_Object can only have children with "^
-                     "value of type Tree_Object or File "))
+  | Node (o,children)::t -> 
+    (match o with 
+     | Tree_Object s -> "Tree_Object " ^ (hash_str ("Tree_Object " ^ s)) 
+                        ^ " " ^ s ^ "\n" 
+                        ^ (tree_children_content t)
+     | File s -> "File " ^ 
+                 (hash_str 
+                    ("Blob "^(string_of_git_object (value (List.hd children))))) 
+                 ^ " " ^ s ^ "\n" ^(tree_children_content t) 
+     | _ -> raise (InvalidContentException 
+                     ("Tree_Object can only have children with "^
+                      "value of type Tree_Object or File ")))
+  | h::t -> raise 
+              (InvalidContentException "tree_children should not have leaves")
 
 (** [write_hash_contents unhashed_adr file_content] writes file_content to 
     the hash of unhashed_adr in the .git-ml/objects hashtable
@@ -79,13 +99,6 @@ let write_hash_contents (unhashed_adr:string) (file_content:string)=
   output_string oc (file_content);
   let () = close_out oc in ()
 
-let string_of_git_object (o:git_object)=
-  match o with
-  |Tree_Object s -> s
-  |Blob s -> s
-  |File s -> s
-  |Commit s -> s
-  |Ref s -> s
 
 let rec hash_file_subtree = function
   |Leaf -> ()
@@ -93,7 +106,8 @@ let rec hash_file_subtree = function
     |Tree_Object s -> write_hash_contents 
                         ("Tree_Object "^s) (tree_children_content lst);
       List.hd (List.map hash_file_subtree lst); 
-    |File s -> write_hash_contents ("File " ^ s) 
+    |File s -> write_hash_contents 
+                 ("Blob "^(string_of_git_object (value (List.hd lst)))) 
                  ("Blob "^(string_of_git_object (value (List.hd lst))))
     |_ -> raise (InvalidContentException "file_subtree can only have nodes
       with value of type Tree_object or File")

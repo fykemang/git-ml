@@ -63,10 +63,19 @@ let add_file_to_tree name content (tree:GitTree.t) =
     |[] -> tree
     |h::[] -> GitTree.add_file h content tree
     |subdir::t -> GitTree.add_child_tree 
-                    ((GitTree.get_subdirectory_tree subdir tree) |> 
+                    ((GitTree.get_subdirectory_tree (subdir) tree) |> 
                      add_file_to_tree_helper t content) tree   
-  in 
-  add_file_to_tree_helper (String.split_on_char '/' name) content tree 
+  in
+  (**let add_file_to_tree_helper name_lst content (tree:GitTree.t) = 
+     match name_lst with
+     | [] -> tree
+     | h::t -> let subdir = List.fold_right 
+                  (fun (a) (b:string) -> (a ^ "/" ^ b)) (List.rev t) "" in 
+      GitTree.get_subdirectory_tree subdir tree |>
+      GitTree.add_file h content
+     in*)  
+  add_file_to_tree_helper 
+    (String.split_on_char '/' name) content tree 
 
 let file_list_to_tree (file_list : file_object list) =
   let rec helper acc (lst : file_object list) = 
