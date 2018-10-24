@@ -94,7 +94,7 @@ let commit (message:string) (branch:string) (file_list:file_object list) =
                     (hash_str "root@3110.org"));
   output_string oc ("commiter Root Author <root@3110.org>" ^
                     (hash_str "root@3110.org"));
-
+  GitTree.hash_file_subtree tree
 
 
 

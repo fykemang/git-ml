@@ -92,7 +92,6 @@ module GitTree : GitTreeSig = struct
     |Commit s -> s
     |Ref s -> s
 
-  (** [hash_file_subtree tree] saves and commits *)
   let rec hash_file_subtree = function
     |Leaf -> ()
     |Node(o,lst) -> match o with 
