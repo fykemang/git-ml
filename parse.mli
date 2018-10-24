@@ -12,6 +12,7 @@ type verb = {name: string;
 
 exception Parse_err of string
 
-val parse : string -> verb list -> unit
+val parse : string list -> string -> verb list -> unit
+
 
 
