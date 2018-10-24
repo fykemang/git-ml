@@ -7,7 +7,7 @@ type spec =
 
 
 exception Parse_err of string
-exception Verb_not_found
+exception Verb_not_found of string
 
 (** tag is defined by a string [name] and a specification [spec]. 
     Short tags should begin with a dash.
