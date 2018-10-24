@@ -2,7 +2,6 @@
 type spec = 
   | String of (string -> unit)
   | Unit of (unit -> unit)
-  | NoArg
 
 type tag = string * spec
 type verb = { name: string; usage: string; 
@@ -10,15 +9,21 @@ type verb = { name: string; usage: string;
 
 exception Parse_err of string
 
+let make_usage usage verbs =
+  " Usage: " ^ usage ^ "\n" ^ 
+  (List.fold_left (fun acc verb -> ("\t" ^ verb.name ^ "\t" ^ verb.usage)::acc) 
+     ["\t" ^ "help" ^ "\t\t" ^ "Display available commands."] verbs
+   |> String.concat "\n")
+
 let check_arg_tag = function 
   | [] -> true
   | hd::tl -> Str.string_before hd 1 <> "-"
 
 let eval args spec =
   match spec with
-  | String f -> List.hd args |> f
+  | String f when args <> [] -> List.hd args |> f
   | Unit f -> f ()
-  | NoArg -> raise (Parse_err "no arguments given for the command.")
+  | _ -> raise (Parse_err "Missing arguments for given command.")
 
 let rec parse_tags args tags  = 
   let tag = List.hd args in
@@ -42,13 +47,6 @@ let parse_verbs (args : string list) (verbs : verb list)  =
 
 (* Will construct text for how to use a verb *)
 let make_verb_usage usage tags = failwith "Not implemented"
-
-(* Will construct test for how to use base commands *)
-let make_usage usage verbs =
-  " Usage: " ^ usage ^ "\n" ^ 
-  (List.fold_left (fun acc verb -> ("\t" ^ verb.name ^ "\t" ^ verb.usage)::acc) 
-     ["\t" ^ "help" ^ "\t\t" ^ "Display available commands."] 
-     verbs |> String.concat "\n")
 
 let add_help_verb usg_msg verbs = 
   {
