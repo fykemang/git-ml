@@ -20,3 +20,4 @@ let cat_file_to_git_object (s:string) =
   |h::t when h = "Blob" -> Blob (List.fold_left (^) "" t )
   |h::t when h = "Tree_Object" -> Tree_Object (List.fold_left (^) "" t ) 
   |_ -> failwith "Unimplemented"
+

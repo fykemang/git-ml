@@ -22,7 +22,8 @@ end
 module GitTree : GitTreeSig = struct
 
   type t = Leaf | Node of git_object * t list
-  exception EmptyTreeException of string  
+  exception EmptyTreeException of string
+  exception InvalidContentException of string  
 
   let empty = Leaf
 
@@ -67,18 +68,42 @@ module GitTree : GitTreeSig = struct
                        (Node (o,lst))
 
   let tree_children_content (lst:t list) : string =
-    failwith "Unimplemented"
+    match lst with
+    | [] -> ""
+    | h::t -> match (value h) with 
+      | Tree_Object s -> (hash_str "Tree Object "^s)
+      | File s -> (hash_str "File "^s)
+      | _ -> raise (InvalidContentException 
+                      ("Tree_Object can only have children with "^
+                       "value of type Tree_Object or File "))
 
+  let write_hash_contents (unhashed_adr:string) (file_content:string)=
+    let hash_addr = (hash_str unhashed_adr) in 
+    let fold_header = String.sub hash_addr 0 2  in
+    let fold_footer = 
+      String.sub hash_addr 2 (String.length hash_addr - 2) in
+    let oc = open_out (".git-ml/objects/"^fold_header^"/"^fold_footer) in
+    output_string oc (file_content);
+    let () = close_out oc in ()
+
+  let string_of_git_object (o:git_object)=
+    match o with
+    |Tree_Object s -> s
+    |Blob s -> s
+    |File s -> s
+    |Commit s -> s
+    |Ref s -> s
+
+  (** [hash_file_subtree tree] saves and commits *)
   let rec hash_file_subtree = function
     |Leaf -> ()
     |Node(o,lst) -> match o with 
-      |Tree_Object s -> let hash_addr = (hash_str "Tree Object "^s) in 
-        let fold_header = String.sub hash_addr 0 2  in
-        let fold_footer = 
-          String.sub hash_addr 2 (String.length hash_addr - 2) in
-        let oc = open_out (".git-ml/objects/"^fold_header^"/"^fold_footer) in
-        output_string oc (tree_children_content lst);
-        let () = close_out oc in () 
-      |_ -> failwith "Unimplented"
+      |Tree_Object s -> write_hash_contents 
+                          ("Tree Object "^s) (tree_children_content lst);
+        List.hd (List.map hash_file_subtree lst); 
+      |File s -> write_hash_contents ("File " ^ s) 
+                   ("Blob "^(string_of_git_object (value (List.hd lst))))
+      |_ -> raise (InvalidContentException "file_subtree can only have nodes
+      with value of type Tree_object or File")
 
 end
