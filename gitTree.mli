@@ -1,11 +1,11 @@
 (** A [git_object] is the type of the elements of a git tree
     A Tree_Object : git_object is different from a GitTree.t *)
 type git_object =
-  |Tree_Object of string
-  |Blob of string
-  |File of string
-  |Commit of string
-  |Ref of string
+  | Tree_Object of string
+  | Blob of string
+  | File of string
+  | Commit of string
+  | Ref of string
 
 module type GitTreeSig = sig 
   (** [t] is the type of a git tree**)
@@ -41,8 +41,8 @@ module type GitTreeSig = sig
 
   (** [hash_file_subtree tree] hashes and stores the valid contents of the tree
       into the git-ml file system in the objects directory
-      Requires: 
-        [tree] has node  with value of type [Tree_Object],[File], or [Blob]*)
+      Requires:
+        [tree] has node with value of type [Tree_Object], [File], or [Blob] *)
   val hash_file_subtree: t -> unit
 
 end

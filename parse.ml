@@ -37,17 +37,18 @@ let rec parse_tags args tags  =
 
 let parse_verbs (args : string list) (verbs : verb list)  =
   let fst_arg = List.hd args in
+  let tl_arg = List.tl args in
   match List.fold_left 
-          (fun acc verb -> 
+          (fun acc verb ->
              match acc with
              | None -> if verb.name = fst_arg then Some verb else None
              | Some v -> acc) None verbs  with
   | None -> raise (Parse_err "specified command could not be found.")
   | Some {name; usage; default; tags} ->
     match tags with
-    | [] -> eval (List.tl args) default
-    | tags when check_arg_tag (List.tl args) -> eval (List.tl args) default
-    | tags -> parse_tags (List.tl args) tags
+    | [] -> eval tl_arg default
+    | tags when check_arg_tag tl_arg -> eval tl_arg default
+    | tags -> parse_tags tl_arg tags
 
 (* Will construct text for how to use a verb *)
 let make_verb_usage usage tags = failwith "Not implemented"
