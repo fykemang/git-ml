@@ -58,7 +58,7 @@ let cat s =
 let hash_object file =
   let content = read_file (file |> open_in) "" in
   let () = print_hash_file file in
-  write_hash_contents file content
+  write_hash_contents ("Blob "^content) ("Blob "^content)
 
 let ls_tree s = failwith "Unimplemented"
 
