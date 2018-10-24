@@ -38,6 +38,7 @@ val add_file: string -> string -> t -> t
     [name = subdirectory]*)
 val get_subdirectory_tree: string -> t -> t 
 
+val write_hash_contents: string -> string -> unit
 (** [hash_file_subtree tree] hashes and stores the valid contents of the tree
     into the git-ml file system in the objects directory
     Requires:
