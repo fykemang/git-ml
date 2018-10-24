@@ -86,6 +86,7 @@ let file_list_to_tree (file_list : file_object list) =
       helper (add_file_to_tree file_name file_content acc) t
   in helper GitTree.empty_tree_object file_list
 
+(** [hash_of_git_object obj] is the string hash of a given [git_object] obj *)
 let hash_of_git_object (obj : git_object) : string = 
   match obj with
   | Tree_Object s -> hash_str ("Tree_Object " ^ s)
