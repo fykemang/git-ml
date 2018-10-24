@@ -19,7 +19,6 @@ let init () = begin
     chdir "refs";
     mkdir "heads" 0o700;
     mkdir "tags" 0o700;
-    print_endline (getcwd ());
     print_endline ("Initialized git-ml repository in " ^ curr_dir);
   with
   | Unix_error (EEXIST, func, file) ->
@@ -58,12 +57,11 @@ let ls_tree s = failwith "Unimplemented"
 
 let log s = failwith "Unimplemented"
 
-
 let add_file_to_tree name content (tree:GitTree.t) =
   let rec add_file_to_tree_helper name_lst content (tree:GitTree.t) = 
     match name_lst with 
-    |[] -> tree 
-    |h::[] -> (GitTree.add_file h content tree)
+    |[] -> tree
+    |h::[] -> GitTree.add_file h content tree
     |subdir::t -> GitTree.add_child_tree 
                     ((GitTree.get_subdirectory_tree subdir tree) |> 
                      add_file_to_tree_helper t content) tree   
@@ -73,28 +71,28 @@ let add_file_to_tree name content (tree:GitTree.t) =
 let file_list_to_tree (file_list : file_object list) =
   let rec helper acc (lst : file_object list) = 
     match lst with 
-    |[] -> acc
-    |(file_name,file_content)::t -> 
+    | [] -> acc
+    | (file_name,file_content)::t -> 
       helper (add_file_to_tree file_name file_content acc) t
   in helper GitTree.empty_tree_object file_list
 
-let hash_of_git_object (obj:git_object) : string = 
+let hash_of_git_object (obj : git_object) : string = 
   match obj with
-  |Tree_Object s -> hash_str ("Tree_object "^s)
-  |Blob s -> hash_str ("Blob "^s)
-  |File s -> hash_str ("File "^s)
-  |Commit s -> hash_str ("Commit "^s)
-  |Ref s -> hash_str ("Ref "^s)
+  | Tree_Object s -> hash_str ("Tree_object " ^ s)
+  | Blob s -> hash_str ("Blob " ^ s)
+  | File s -> hash_str ("File " ^ s)
+  | Commit s -> hash_str ("Commit " ^ s)
+  | Ref s -> hash_str ("Ref " ^ s)
 
 let commit (message:string) (branch:string) (file_list:file_object list) = 
   let tree = file_list_to_tree file_list in 
   chdir ".git-ml/refs/heads";
-  let oc = open_out (".git-ml/refs/heads/"^branch) in 
-  output_string oc ("Tree_Object "^(hash_of_git_object (GitTree.value tree))
-                    ^"\n");
-  output_string oc ("author Root Author <root@3110.org>"^
+  let oc = open_out (".git-ml/refs/heads/" ^ branch) in 
+  output_string oc ("Tree_Object " ^ (hash_of_git_object (GitTree.value tree))
+                    ^ "\n");
+  output_string oc ("author Root Author <root@3110.org>" ^
                     (hash_str "root@3110.org"));
-  output_string oc ("commiter Root Author <root@3110.org>"^
+  output_string oc ("commiter Root Author <root@3110.org>" ^
                     (hash_str "root@3110.org"));
 
 
