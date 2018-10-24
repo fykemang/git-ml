@@ -35,7 +35,7 @@ let save_hash s = failwith "Unimplemented"
 
 let rec read_file file_chnl s = 
   try let cur_line = file_chnl |> input_line in
-    let s = s ^ cur_line in
+    let s = s ^ cur_line ^ "\n" in
     read_file file_chnl s with
   | End_of_file -> let _ = file_chnl |> close_in in s
 
@@ -49,17 +49,13 @@ let rec read_dir handle s =
 let cat s = 
   let fold_header = String.sub s 0 2  in
   let fold_footer = String.sub s 2 (String.length s - 2) in(
-    try (
-      chdir (".git-ml/objects/" ^ fold_header)
-    ) with 
-    |Unix_error _ -> print_endline "Unix Error" ;
-      try(
-        let oc = open_in fold_footer in
-        let content = (read_file oc fold_footer) in
-        print_endline content;
-        let () = close_in oc in ()
-      ) with e -> raise e
-  );()
+    try(
+      let ic = open_in (
+          ".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
+      let content = (read_file ic "") in
+      (print_endline content);
+    ) with e -> print_endline "Read Issue"
+  ) 
 
 (*let hash_object file = 
   let content = read_file (file |> open_in) "" in
