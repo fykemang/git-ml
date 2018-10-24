@@ -16,12 +16,18 @@ let verb_list = [
     usage = "Looks for a file based on id.";
     default = Parse.String (print_hash);
     tags = []
+  };
+  {
+    name = "init";
+    usage = "Intializes repository.";
+    default = Parse.Unit (Commands.init);
+    tags = []
   }
 ]
 
 let main () = begin
   let args = sub Sys.argv 1 (length Sys.argv - 1) |> to_list in
-  parse args "executable [COMMAND] [FLAGS] <INPUT>" verb_list
+  parse args "EXECUTABLE [COMMAND] [FLAGS] <INPUT>" verb_list
 end
 
 let () = main ()
