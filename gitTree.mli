@@ -38,12 +38,29 @@ val add_file: string -> string -> t -> t
     [name = subdirectory]*)
 val get_subdirectory_tree: string -> t -> t 
 
+(** [tree_children_content lst] is the string representation of the 
+    content of the directory represented by the [lst]
+    Requires:
+        [lst] is a valid child list of a GitTree Node with value 
+        type [Tree_object]*)
+val tree_children_content: t list -> string
+
+(** [write_hash_contents unhashed_adr file_content] writes file_content to 
+    the hash of unhashed_adr in the .git-ml/objects hashtable
+    It is designed to be used as a helper function **)
 val write_hash_contents: string -> string -> unit
+
 (** [hash_file_subtree tree] hashes and stores the valid contents of the tree
     into the git-ml file system in the objects directory
     Requires:
-      [tree] has node with value of type [Tree_Object], [File], or [Blob] *)
+    [tree] has node with value of type [Tree_Object], [File], or [Blob] *)
 val hash_file_subtree: t -> unit
+
+(** [hash_of_tree tree] is the valid md5 hash of a GitTree with value of type 
+    [Tree_Object] 
+    Requires:
+        [value tree] is of type Tree_Object*)
+val hash_of_tree: t -> string
 
 (** [string_of_git_object] is the string associated with a certain git object 
     [string_of_git_object (File "test.txt")] would evaluate to ["test.txt"]*)
