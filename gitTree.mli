@@ -42,7 +42,7 @@ module type GitTreeSig = sig
   (** [hash_file_subtree tree] hashes and stores the valid contents of the tree
       into the git-ml file system in the objects directory
       Requires:
-        [tree] has node with value of type [Tree_Object], [File], or [Blob] *)
+        [tree] has node  with value of type [Tree_Object], [File], or [Blob] *)
   val hash_file_subtree: t -> unit
 
 end
