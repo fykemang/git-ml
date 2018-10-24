@@ -14,9 +14,9 @@ let hash_str s = s |> Digest.string |> Digest.to_hex
 let tree_content_to_file_list (pointer:string) =
   failwith "Unimplemented"
 
+(** This may not be at all useful *)
 let cat_file_to_git_object (s:string) =
   match String.split_on_char ' ' s with
   |h::t when h = "Blob" -> Blob (List.fold_left (^) "" t )
-  |h::t when h = "Tree_Object" -> tree_content_to_file_list 
-                                    (List.fold_left (^) "" t )
+  |h::t when h = "Tree_Object" -> Tree_Object (List.fold_left (^) "" t ) 
   |_ -> failwith "Unimplemented"

@@ -9,7 +9,7 @@ type git_object =
 
 module type GitTreeSig = sig 
   (** [t] is the type of a git tree**)
-  type t  
+  type t 
 
   (** [value t] gives the [git_object] at the root node of GitTree.t*)
   val value: t -> git_object 
@@ -38,6 +38,13 @@ module type GitTreeSig = sig
       A subdirectory node is a node of type [Tree_Object name] with 
       [name = subdirectory]*)
   val get_subdirectory_tree: string -> t -> t 
+
+  (** [hash_file_subtree tree] hashes and stores the valid contents of the tree
+      into the git-ml file system in the objects directory
+      Requires: 
+        [tree] has node  with value of type [Tree_Object],[File], or [Blob]*)
+  val hash_file_subtree: t -> unit
+
 end
 
 module GitTree: GitTreeSig 
