@@ -1,3 +1,4 @@
+open Util
 type git_object = 
   | Tree_Object of string
   | Blob of string
