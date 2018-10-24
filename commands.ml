@@ -19,7 +19,6 @@ let init () = begin
     chdir "refs";
     mkdir "heads" 0o700;
     mkdir "tags" 0o700;
-    print_endline (getcwd ());
     print_endline ("Initialized git-ml repository in " ^ curr_dir);
   with
   | Unix_error (EEXIST, func, file) ->
