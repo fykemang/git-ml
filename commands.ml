@@ -25,6 +25,8 @@ let init () = begin
     print_endline (file ^ " already exists.");
 end
 
+let print_hash_file f = print_endline (Util.hash_file f)
+
 let print_hash s = print_endline (Util.hash_str s)
 
 let save_hash s = failwith "Unimplemented"
@@ -46,12 +48,20 @@ let cat s =
   let handle = opendir ".git-ml/objects" in
   read_dir handle s
 
-let hash_object file = 
+(*let hash_object file = 
   let content = read_file (file |> open_in) "" in
   let out_chnl = open_out file in
   let _ = output_string out_chnl content in 
   let _ = out_chnl |> close_out 
-  in hash_file file
+  in hash_file file*)
+
+let hash_object file =
+  let content = read_file (file |> open_in) "" in
+  let out_chnl = open_out file in
+  let _ = output_string out_chnl content in 
+  let _ = out_chnl |> close_out in
+  write_hash_contents file content
+
 
 let ls_tree s = failwith "Unimplemented"
 
