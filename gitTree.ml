@@ -57,9 +57,9 @@ let rec tree_children_content (lst:t list) : string =
   match lst with
   | [] -> ""
   | h::t -> match (value h) with 
-    | Tree_Object s -> "Tree_Object " ^ (hash_str ("Tree Object "^s)) ^ "\n" ^
+    | Tree_Object s -> "Tree_Object " ^ (hash_str ("Tree Object " ^ s)) ^ "\n" ^
                        (tree_children_content t)
-    | File s -> "File " ^ (hash_str ("File "^s)) ^ "\n" ^
+    | File s -> "File " ^ (hash_str ("File " ^ s)) ^ "\n" ^
                 (tree_children_content t) 
     | _ -> raise (InvalidContentException 
                     ("Tree_Object can only have children with "^

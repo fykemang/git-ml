@@ -16,6 +16,12 @@ let verb_list = [
     usage = "Looks for a file based on id.";
     default = Parse.String (print_hash);
     tags = []
+  };
+  {
+    name = "init";
+    usage = "Intializes repository.";
+    default = Parse.Unit (Commands.init);
+    tags = []
   }
 ]
 

@@ -10,7 +10,6 @@ type verb = { name : string; usage : string; default : spec; tags : tag list }
 exception Parse_err of string
 exception Verb_not_found
 
-
 let usage_string usage verbs =
   "Usage: " ^ usage ^ "\n" ^ 
   (
@@ -30,7 +29,7 @@ let check_arg_tag = function
   | [] -> true
   | hd::tl -> Str.string_before hd 1 <> "-"
 
-let eval args spec =
+let eval (args : string list) (spec : spec) =
   match spec with
   | String f when args <> [] -> List.hd args |> f
   | Unit f -> f ()
@@ -45,14 +44,13 @@ let rec parse_tags (args : string list) (tags : tag list) =
 let parse_verbs (args : string list) (verbs : verb list)  =
   let fst_arg = List.hd args in
   let tl_arg = List.tl args in
-  match List.fold_left 
-          (
-            fun acc verb ->
-              match acc with
-              | None -> if verb.name = fst_arg then Some verb else None
-              | Some v -> acc
-          ) 
-          None verbs with
+  match List.fold_left (
+      fun acc verb ->
+        match acc with
+        | None -> if verb.name = fst_arg then Some verb else None
+        | Some v -> acc
+    ) 
+      None verbs with
   | None -> raise Verb_not_found
   | Some {name; usage; default; tags} ->
     match tags with
@@ -65,27 +63,29 @@ let make_verb_usage usage tags = failwith "unimplemented"
 
 (** [add_help_verb usg_msg verbs] is [verbs] with an added "help" 
     verb *)
-let add_help_verb (usg_msg : string) (verbs : verb list) =
+let set_up_verbs (usg_msg : string) (verbs : verb list) : verb list =
   {
     name="help";
     usage="Display available commands.";
-    default=Unit (fun () -> print_endline (usage_string usg_msg verbs));
+    default = Unit (fun () -> print_endline (usage_string usg_msg verbs));
     tags=[]
   }::{
     name="--help";
     usage="Display available commands.";
-    default=Unit (fun () -> print_endline (usage_string usg_msg verbs));
+    default = Unit (fun () -> print_endline (usage_string usg_msg verbs));
     tags=[]
   }::verbs |> List.rev
 
 let parse args usg_msg verbs =
   try
-    let init_verbs = add_help_verb usg_msg verbs in
-    if (List.length args <> 0) 
+    let init_verbs = set_up_verbs usg_msg verbs in
+    if List.length args <> 0
     then parse_verbs args init_verbs
     else raise Verb_not_found
   with
   | Parse_err s -> print_endline ("fatal: " ^ s); 
     print_endline (usage_string usg_msg verbs);
-  | Verb_not_found -> print_endline (usage_string usg_msg verbs);
+  | Verb_not_found -> 
+    print_endline ("fatal: Invalid command.");
+    print_endline (usage_string usg_msg verbs);
   | Invalid_argument s -> print_endline "Malformed arguments"
