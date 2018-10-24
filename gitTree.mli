@@ -7,7 +7,6 @@ type git_object =
   | Commit of string
   | Ref of string
 
-
 (** [t] is the type of a git tree**)
 type t 
 

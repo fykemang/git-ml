@@ -7,8 +7,6 @@ type git_object =
   | Commit of string
   | Ref of string
 
-
-
 type t = Leaf | Node of git_object * t list
 exception EmptyTreeException of string
 exception InvalidContentException of string  
