@@ -1,20 +1,24 @@
-
+(* Check if there are multiple tags then it follows that there are groups
+   and it will parse groups. *)
 type spec = 
   | String of (string -> unit)
   | Unit of (unit -> unit)
 
 type tag = string * spec
-type verb = { name: string; usage: string; 
-              default: spec; tags: tag list }
+type verb = { name : string; usage : string; default : spec; tags : tag list }
 
 exception Parse_err of string
 
+(** [make_usage usge verbs] is a string describing possible verbs 
+    and a short description of the purpose of the commands *)
 let make_usage usage verbs =
-  " Usage: " ^ usage ^ "\n" ^ 
+  "Usage: " ^ usage ^ "\n" ^ 
   (List.fold_left (fun acc verb -> ("\t" ^ verb.name ^ "\t" ^ verb.usage)::acc) 
      ["\t" ^ "help" ^ "\t\t" ^ "Display available commands."] verbs
    |> String.concat "\n")
 
+(** [check_arg_tag lst] true if the first string does not begin with '-'
+    in a list of strings, false otherwise *)
 let check_arg_tag = function 
   | [] -> true
   | hd::tl -> Str.string_before hd 1 <> "-"
@@ -48,7 +52,9 @@ let parse_verbs (args : string list) (verbs : verb list)  =
 (* Will construct text for how to use a verb *)
 let make_verb_usage usage tags = failwith "Not implemented"
 
-let add_help_verb usg_msg verbs = 
+(** [add_help_verb usg_msg verbs] is [verbs] with an added "help" 
+    verb *)
+let add_help_verb usg_msg verbs =
   {
     name="help";
     usage="Display available commands.";
