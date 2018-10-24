@@ -19,20 +19,6 @@ let verb_list = [
   }
 ]
 
-(* let hash_spec_list = [
-   ("-w", String (print_hash), "");
-   ("-d", String (print_hash), "");
-   ]
-
-   let rec spec_list = ref [
-    ("-init", Unit (fun () -> init ()), 
-     ": Initialize a git-ml repository in the current directory.");
-    ("-hash-object",  Unit (
-        fun () -> spec_list := hash_spec_list
-      ),
-     ": Hashes a object and returns the hash.");
-   ] *)
-
 let main () = begin
   let args = Array.sub Sys.argv 1 (Array.length Sys.argv - 1) 
              |> Array.to_list in
