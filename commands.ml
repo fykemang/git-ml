@@ -57,11 +57,8 @@ let cat s =
 
 let hash_object file =
   let content = read_file (file |> open_in) "" in
-  let out_chnl = open_out file in
-  let _ = output_string out_chnl content in 
-  let _ = out_chnl |> close_out in
+  let () = print_hash_file file in
   write_hash_contents file content
-
 
 let ls_tree s = failwith "Unimplemented"
 

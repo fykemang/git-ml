@@ -1,14 +1,15 @@
 open Commands
 open Parse
 open Array
+open GitTree
 
 let verb_list = [
   {
     name = "hash-object"; 
     usage = "Hashes a file."; 
-    default = Parse.String (print_hash);
+    default = Parse.String (print_hash_file);
     tags = [
-      ("-w", Parse.String (print_hash))
+      ("-w", Parse.String (hash_object))
     ]
   };
   {
