@@ -1,4 +1,5 @@
 open Util
+open Unix
 type git_object = 
   | Tree_Object of string
   | Blob of string
@@ -54,12 +55,14 @@ let add_file (filename:string) (file_content:string) = function
                              (Node ((Blob file_content),[])::[]))) 
                       (Node (o,lst))
 
-let tree_children_content (lst:t list) : string =
+let rec tree_children_content (lst:t list) : string =
   match lst with
   | [] -> ""
   | h::t -> match (value h) with 
-    | Tree_Object s -> (hash_str "Tree Object "^s)
-    | File s -> (hash_str "File "^s)
+    | Tree_Object s -> "Tree_Object " ^ (hash_str ("Tree Object "^s)) ^ "\n" ^
+                       (tree_children_content t)
+    | File s -> "File " ^ (hash_str ("File "^s)) ^ "\n" ^
+                (tree_children_content t) 
     | _ -> raise (InvalidContentException 
                     ("Tree_Object can only have children with "^
                      "value of type Tree_Object or File "))
@@ -69,6 +72,8 @@ let write_hash_contents (unhashed_adr:string) (file_content:string)=
   let fold_header = String.sub hash_addr 0 2  in
   let fold_footer = 
     String.sub hash_addr 2 (String.length hash_addr - 2) in
+  let () = (try (mkdir (".git-ml/objects/" ^ fold_header) 0o700)
+            with |Unix_error _ -> () ) in 
   let oc = open_out (".git-ml/objects/"^fold_header^"/"^fold_footer) in
   output_string oc (file_content);
   let () = close_out oc in ()

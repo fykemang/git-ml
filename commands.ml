@@ -86,14 +86,13 @@ let hash_of_git_object (obj : git_object) : string =
 
 let commit (message:string) (branch:string) (file_list:file_object list) = 
   let tree = file_list_to_tree file_list in 
-  chdir ".git-ml/refs/heads";
   let oc = open_out (".git-ml/refs/heads/" ^ branch) in 
   output_string oc ("Tree_Object " ^ (hash_of_git_object (GitTree.value tree))
                     ^ "\n");
-  output_string oc ("author Root Author <root@3110.org>" ^
-                    (hash_str "root@3110.org"));
-  output_string oc ("commiter Root Author <root@3110.org>" ^
-                    (hash_str "root@3110.org"));
+  output_string oc ("author Root Author <root@3110.org> " ^
+                    (hash_str "root@3110.org")^"\n");
+  output_string oc ("commiter Root Author <root@3110.org> " ^
+                    (hash_str "root@3110.org") ^ "\n");
   GitTree.hash_file_subtree tree
 
 (** [tree_content_to_file_list pointer] is the file list of type 

@@ -3,6 +3,7 @@ OBJECTS=$(MODULES:=.cmo)
 MLS=$(MODULES:=.ml)
 MLIS=$(MODULES:=.mli)
 TEST=test.byte
+TEST_CMD=test_commands.byte
 MAIN=main.byte
 OCAMLBUILD=ocamlbuild -use-ocamlfind
 PKGS=oUnit,unix,yojson,str
@@ -15,6 +16,9 @@ build:
 
 test:
 	$(OCAMLBUILD) -tag debug $(TEST) && ./$(TEST)
+
+test-cmd:
+	$(OCAMLBUILD) -tag debug $(TEST_CMD) && ./$(TEST_CMD)
 
 docs: docs-public docs-private
 	

@@ -1,3 +1,7 @@
+type filename = string
+type file_content = string
+type file_object = filename * file_content
+
 (** [init ()] initializes a .git-ml directory within the current directory
     with default files and folders. *)
 val init : unit -> unit
@@ -16,3 +20,5 @@ val log : unit -> string
 (** [ls_tree s] is the structure of a tree given [s] its hashed
     hex representation. *)
 val ls_tree : string -> string
+
+val commit: string -> string -> file_object list -> unit
