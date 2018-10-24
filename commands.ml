@@ -95,16 +95,18 @@ let file_list_to_tree (file_list : file_object list) =
 (** [hash_of_git_object obj] is the string hash of a given [git_object] obj *)
 let hash_of_git_object (obj : git_object) : string = 
   match obj with
-  | Tree_Object s -> hash_str ("Tree_Object " ^ s)
+  | Tree_Object s -> failwith "Invalid use of function, use hash_of_tree"
   | Blob s -> hash_str ("Blob " ^ s)
   | File s -> hash_str ("File " ^ s)
   | Commit s -> hash_str ("Commit " ^ s)
   | Ref s -> hash_str ("Ref " ^ s)
 
+
+
 let commit (message:string) (branch:string) (file_list:file_object list) = 
   let tree = file_list_to_tree file_list in 
   let oc = open_out (".git-ml/refs/heads/" ^ branch) in 
-  output_string oc ("Tree_Object " ^ (hash_of_git_object (GitTree.value tree))
+  output_string oc ("Tree_Object " ^ (GitTree.hash_of_tree (tree))
                     ^ "\n");
   output_string oc ("author Root Author <root@3110.org> " ^
                     (hash_str "root@3110.org")^"\n");

@@ -67,12 +67,15 @@ let string_of_git_object (o:git_object)=
   |Commit s -> s
   |Ref s -> s
 
+
+
 let rec tree_children_content (lst:t list) : string =
   match lst with
   | [] -> ""
   | Node (o,children)::t -> 
     (match o with 
-     | Tree_Object s -> "Tree_Object " ^ (hash_str ("Tree_Object " ^ s)) 
+     | Tree_Object s -> "Tree_Object " ^ 
+                        (hash_str (tree_children_content children)) 
                         ^ " " ^ s ^ "\n" 
                         ^ (tree_children_content t)
      | File s -> "File " ^ 
@@ -84,6 +87,13 @@ let rec tree_children_content (lst:t list) : string =
                       "value of type Tree_Object or File ")))
   | h::t -> raise 
               (InvalidContentException "tree_children should not have leaves")
+
+let hash_of_tree (tree: t) : string = 
+  match tree with 
+  | Node (o,lst) -> (match o with 
+      |Tree_Object s -> hash_str (tree_children_content lst)
+      | _ -> failwith "Unimplemented in accordance with DRY")
+  | Leaf -> raise (InvalidContentException "Cannot take hash of leaf")
 
 (** [write_hash_contents unhashed_adr file_content] writes file_content to 
     the hash of unhashed_adr in the .git-ml/objects hashtable
@@ -100,11 +110,13 @@ let write_hash_contents (unhashed_adr:string) (file_content:string)=
   let () = close_out oc in ()
 
 
+
+
 let rec hash_file_subtree = function
   |Leaf -> ()
   |Node(o,lst) -> match o with 
     |Tree_Object s -> write_hash_contents 
-                        ("Tree_Object "^s) (tree_children_content lst);
+                        (tree_children_content lst) (tree_children_content lst);
       List.hd (List.map hash_file_subtree lst); 
     |File s -> write_hash_contents 
                  ("Blob "^(string_of_git_object (value (List.hd lst)))) 
