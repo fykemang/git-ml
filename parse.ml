@@ -11,37 +11,40 @@ exception Parse_err of string
 exception Verb_not_found
 
 let usage_string usage verbs =
-  "Usage: " ^ usage ^ "\n" ^ 
-  (
+  Format.sprintf "\nUsage: %s\nCommands:\n" usage ^ (
     List.fold_left (
       fun acc verb ->
         if (verb.usage <> "") 
-        then ("\t" ^ verb.name ^ "\t" ^ verb.usage)::acc 
+        then (Format.sprintf "@[@;<4 0>%-15s%s@]" verb.name verb.usage)::acc 
         else acc
     )
-      ["\t" ^ "help" ^ "\t\t" ^ "Display available commands."] verbs
+      [] 
+      verbs
     |> String.concat "\n"
   )
 
+let print_usage usage verbs = 
+  print_endline (usage_string usage verbs)
+
 (** [check_arg_tag lst] true if the first string does not begin with '-'
     in a list of strings, false otherwise *)
-let check_arg_tag = function 
+let check_arg_tag = function
   | [] -> true
   | hd::tl -> Str.string_before hd 1 <> "-"
 
-let eval (args : string list) (spec : spec) =
+let eval (args : string list) (spec : spec) : unit =
   match spec with
   | String f when args <> [] -> List.hd args |> f
   | Unit f -> f ()
   | _ -> raise (Parse_err "Can't evaluate missing arguments.")
 
-let rec parse_tags (args : string list) (tags : tag list) =
+let rec parse_tags (args : string list) (tags : tag list) : unit =
   let tag = List.hd args in
   match List.assoc_opt tag tags with
   | None -> raise (Parse_err "invalid tag for the given command.")
   | Some spec -> eval (List.tl args) spec
 
-let parse_verbs (args : string list) (verbs : verb list)  =
+let parse_verbs (args : string list) (verbs : verb list) : unit  =
   let fst_arg = List.hd args in
   let tl_arg = List.tl args in
   match List.fold_left (
@@ -64,28 +67,29 @@ let make_verb_usage usage tags = failwith "unimplemented"
 (** [add_help_verb usg_msg verbs] is [verbs] with an added "help" 
     verb *)
 let set_up_verbs (usg_msg : string) (verbs : verb list) : verb list =
-  {
+  let rec new_verbs () = {
     name="help";
     usage="Display available commands.";
-    default = Unit (fun () -> print_endline (usage_string usg_msg verbs));
+    default = Unit (fun () -> print_usage usg_msg (new_verbs ()));
     tags=[]
   }::{
     name="--help";
-    usage="Display available commands.";
-    default = Unit (fun () -> print_endline (usage_string usg_msg verbs));
+    usage="";
+    default = Unit (fun () -> print_usage usg_msg (new_verbs ()));
     tags=[]
-  }::verbs |> List.rev
+  }::verbs in
+  new_verbs ()
 
 let parse args usg_msg verbs =
+  let init_verbs = set_up_verbs usg_msg verbs in
   try
-    let init_verbs = set_up_verbs usg_msg verbs in
     if List.length args <> 0
     then parse_verbs args init_verbs
     else raise Verb_not_found
   with
   | Parse_err s -> print_endline ("fatal: " ^ s); 
-    print_endline (usage_string usg_msg verbs);
-  | Verb_not_found -> 
+    print_endline (usage_string usg_msg init_verbs);
+  | Verb_not_found ->
     print_endline ("fatal: Invalid command.");
-    print_endline (usage_string usg_msg verbs);
+    print_endline (usage_string usg_msg init_verbs);
   | Invalid_argument s -> print_endline "Malformed arguments"

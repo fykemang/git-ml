@@ -27,7 +27,7 @@ let verb_list = [
 
 let main () = begin
   let args = sub Sys.argv 1 (length Sys.argv - 1) |> to_list in
-  parse args "executable [COMMAND] [FLAGS] <INPUT>" verb_list
+  parse args "EXECUTABLE [COMMAND] [FLAGS] <INPUT>" verb_list
 end
 
 let () = main ()
