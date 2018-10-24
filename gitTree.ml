@@ -88,7 +88,7 @@ let rec hash_file_subtree = function
   |Leaf -> ()
   |Node(o,lst) -> match o with 
     |Tree_Object s -> write_hash_contents 
-                        ("Tree Object "^s) (tree_children_content lst);
+                        ("Tree_Object "^s) (tree_children_content lst);
       List.hd (List.map hash_file_subtree lst); 
     |File s -> write_hash_contents ("File " ^ s) 
                  ("Blob "^(string_of_git_object (value (List.hd lst))))

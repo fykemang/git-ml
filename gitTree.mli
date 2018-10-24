@@ -44,4 +44,4 @@ val get_subdirectory_tree: string -> t -> t
       [tree] has node with value of type [Tree_Object], [File], or [Blob] *)
 val hash_file_subtree: t -> unit
 
-
+val string_of_git_object: git_object -> string

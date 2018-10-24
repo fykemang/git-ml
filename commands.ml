@@ -78,7 +78,7 @@ let file_list_to_tree (file_list : file_object list) =
 
 let hash_of_git_object (obj : git_object) : string = 
   match obj with
-  | Tree_Object s -> hash_str ("Tree_object " ^ s)
+  | Tree_Object s -> hash_str ("Tree_Object " ^ s)
   | Blob s -> hash_str ("Blob " ^ s)
   | File s -> hash_str ("File " ^ s)
   | Commit s -> hash_str ("Commit " ^ s)
