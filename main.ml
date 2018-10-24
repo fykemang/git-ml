@@ -1,6 +1,6 @@
-open Arg
 open Commands
 open Parse
+open Array
 
 let verb_list = [
   {
@@ -8,7 +8,7 @@ let verb_list = [
     usage = "Hashes a file."; 
     default = Parse.String (print_hash);
     tags = [
-      ("-t", Parse.String (print_hash))
+      ("-w", Parse.String (print_hash))
     ]
   };
   {
@@ -20,9 +20,8 @@ let verb_list = [
 ]
 
 let main () = begin
-  let args = Array.sub Sys.argv 1 (Array.length Sys.argv - 1) 
-             |> Array.to_list in
-  parse args "git-ml [command] [tags...] [args...]" verb_list
+  let args = sub Sys.argv 1 (length Sys.argv - 1) |> to_list in
+  parse args "executable [COMMAND] [FLAGS] <INPUT>" verb_list
 end
 
 let () = main ()

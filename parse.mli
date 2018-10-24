@@ -21,7 +21,8 @@ type verb = { name: string; usage: string; default: spec; tags: tag list }
 exception Parse_err of string
 
 (** [parse args usg_msg verbs] performs operations defined by [verbs] 
-    based on the given list of arguments [args]. *)
+    based on the given list of arguments [args]. [usg_msg] describes 
+    the purpose of the verbs. *)
 val parse : string list -> string -> verb list -> unit
 
 
