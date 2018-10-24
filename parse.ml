@@ -81,7 +81,9 @@ let add_help_verb (usg_msg : string) (verbs : verb list) =
 let parse args usg_msg verbs =
   try
     let init_verbs = add_help_verb usg_msg verbs in
-    parse_verbs args init_verbs;
+    if (List.length args <> 0) 
+    then parse_verbs args init_verbs
+    else raise Verb_not_found
   with
   | Parse_err s -> print_endline ("fatal: " ^ s); 
     print_endline (usage_string usg_msg verbs);
