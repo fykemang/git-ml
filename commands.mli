@@ -26,6 +26,10 @@ val log : unit -> string
     hex representation. *)
 val ls_tree : string -> string
 
+(** [add file] writes to the index of the repository data about
+    [file] if it exists. *)
+val add : string -> unit
+
 (** [commit message branch lst] commits the file_object list into the 
     .git-ml/objects hashtable and creates a commit in master/[branch] **)
 val commit: string -> string -> file_object list -> unit

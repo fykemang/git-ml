@@ -64,14 +64,14 @@ let ls_tree s = failwith "Unimplemented"
 
 let log s = failwith "Unimplemented"
 
-let add_file_to_tree name content (tree:GitTree.t) =
-  let rec add_file_to_tree_helper name_lst content (tree:GitTree.t) = 
+let add_file_to_tree name content (tree : GitTree.t) =
+  let rec add_file_to_tree_helper name_lst content (tree : GitTree.t) = 
     match name_lst with 
-    |[] -> tree
-    |h::[] -> GitTree.add_file h content tree
-    |subdir::t -> GitTree.add_child_tree 
-                    ((GitTree.get_subdirectory_tree (subdir) tree) |> 
-                     add_file_to_tree_helper t content) tree   
+    | [] -> tree
+    | h::[] -> GitTree.add_file h content tree
+    | subdir::t -> GitTree.add_child_tree 
+                     ((GitTree.get_subdirectory_tree (subdir) tree) |> 
+                      add_file_to_tree_helper t content) tree   
   in
   (**let add_file_to_tree_helper name_lst content (tree:GitTree.t) = 
      match name_lst with
@@ -80,7 +80,7 @@ let add_file_to_tree name content (tree:GitTree.t) =
                   (fun (a) (b:string) -> (a ^ "/" ^ b)) (List.rev t) "" in 
       GitTree.get_subdirectory_tree subdir tree |>
       GitTree.add_file h content
-     in*)  
+     in*)
   add_file_to_tree_helper 
     (String.split_on_char '/' name) content tree 
 
@@ -101,9 +101,10 @@ let hash_of_git_object (obj : git_object) : string =
   | Commit s -> hash_str ("Commit " ^ s)
   | Ref s -> hash_str ("Ref " ^ s)
 
-
-
-let commit (message:string) (branch:string) (file_list:file_object list) = 
+let commit 
+    (message:string) 
+    (branch:string) 
+    (file_list:file_object list) : unit = 
   let tree = file_list_to_tree file_list in 
   let oc = open_out (".git-ml/refs/heads/" ^ branch) in 
   output_string oc ("Tree_Object " ^ (GitTree.hash_of_tree (tree))
@@ -125,10 +126,15 @@ let tree_content_to_file_list (pointer:string) =
 (** This may not be at all useful *)
 let cat_file_to_git_object (s:string) =
   match String.split_on_char ' ' s with
-  |h::t when h = "Blob" -> Blob (List.fold_left (^) "" t )
-  |h::t when h = "Tree_Object" -> Tree_Object (List.fold_left (^) "" t ) 
-  |_ -> failwith "Unimplemented"
+  | h::t when h = "Blob" -> Blob (List.fold_left (^) "" t )
+  | h::t when h = "Tree_Object" -> Tree_Object (List.fold_left (^) "" t ) 
+  | _ -> failwith "Unimplemented"
 
-
-
-
+let add (file : string) : unit = try
+  chdir ".git-ml";
+  let file_index = openfile "index" [O_APPEND; O_CREAT; O_RDWR] 0o700 in
+  let bytes_written = write_substring file_index file 0 0 in
+  print_endline (string_of_int bytes_written);
+  close file_index;
+  with
+  | Unix_error (e, name, param) -> print_endline name

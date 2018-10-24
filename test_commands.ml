@@ -8,4 +8,4 @@ let lst =
   ("test1.html","test1")::
   ("dir1/dir2/test.html", "<b>right order</b>")::
   ("dir/test2.html","test1")::[]
-let () = Commands.commit ("commit message") ("master") lst 
+let () = Commands.commit ("commit message") ("master") lst

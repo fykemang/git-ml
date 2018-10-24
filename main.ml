@@ -23,6 +23,12 @@ let verb_list = [
     usage = "Intializes repository.";
     default = Parse.Unit (Commands.init);
     tags = []
+  };
+  {
+    name = "add";
+    usage = "Add file to the staging area.";
+    default = Parse.String (add);
+    tags = []
   }
 ]
 

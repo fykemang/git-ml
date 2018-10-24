@@ -91,4 +91,4 @@ let parse args usg_msg verbs =
   | Verb_not_found s ->
     print_endline ("fatal: " ^ s);
     print_endline (usage_string usg_msg init_verbs);
-  | Invalid_argument s -> print_endline "Malformed arguments"
+  | Invalid_argument s -> print_endline s

@@ -61,13 +61,11 @@ let add_file (filename:string) (file_content:string) = function
 
 let string_of_git_object (o:git_object)=
   match o with
-  |Tree_Object s -> s
-  |Blob s -> s
-  |File s -> s
-  |Commit s -> s
-  |Ref s -> s
-
-
+  | Tree_Object s -> s
+  | Blob s -> s
+  | File s -> s
+  | Commit s -> s
+  | Ref s -> s
 
 let rec tree_children_content (lst:t list) : string =
   match lst with
@@ -103,9 +101,10 @@ let write_hash_contents (unhashed_adr:string) (file_content:string)=
   let fold_header = String.sub hash_addr 0 2  in
   let fold_footer = 
     String.sub hash_addr 2 (String.length hash_addr - 2) in
-  let () = (try (mkdir (".git-ml/objects/" ^ fold_header) 0o700)
-            with |Unix_error _ -> () ) in 
-  let oc = open_out (".git-ml/objects/"^fold_header^"/"^fold_footer) in
+  let () = try mkdir (".git-ml/objects/" ^ fold_header) 0o700
+            with
+            | Unix_error _ -> () in
+  let oc = open_out (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
   output_string oc (file_content);
   let () = close_out oc in ()
 
@@ -113,14 +112,14 @@ let write_hash_contents (unhashed_adr:string) (file_content:string)=
 
 
 let rec hash_file_subtree = function
-  |Leaf -> ()
-  |Node(o,lst) -> match o with 
-    |Tree_Object s -> write_hash_contents 
+  | Leaf -> ()
+  | Node(o,lst) -> match o with 
+    | Tree_Object s -> write_hash_contents 
                         (tree_children_content lst) (tree_children_content lst);
       List.hd (List.map hash_file_subtree lst); 
-    |File s -> write_hash_contents 
+    | File s -> write_hash_contents 
                  ("Blob "^(string_of_git_object (value (List.hd lst)))) 
                  ("Blob "^(string_of_git_object (value (List.hd lst))))
-    |_ -> raise (InvalidContentException "file_subtree can only have nodes
+    | _ -> raise (InvalidContentException "file_subtree can only have nodes
       with value of type Tree_object or File")
 
