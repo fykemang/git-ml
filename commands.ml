@@ -104,7 +104,7 @@ let commit (message:string) (branch:string) (file_list:file_object list) =
   GitTree.hash_file_subtree tree
 
 (** [tree_content_to_file_list pointer] is the file list of type 
-    [string*string list] that is a list of filenames and file contents. 
+    [string * string list] that is a list of filenames and file contents. 
     Mutually recurisve with [cat_file_to_git_object s] 
     Requires: 
       pointer is a valid pointer to a tree*)
