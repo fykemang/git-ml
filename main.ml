@@ -7,7 +7,7 @@ let verb_list = [
   {
     name = "hash-object"; 
     usage = "Hashes a file."; 
-    default = Parse.String (print_hash_file);
+    default = Parse.String (hash_object_default);
     tags = [
       ("-w", Parse.String (hash_object))
     ]
@@ -15,7 +15,7 @@ let verb_list = [
   {
     name = "cat-file";
     usage = "Looks for a file based on id.";
-    default = Parse.String (print_hash);
+    default = Parse.String (cat);
     tags = []
   };
   {

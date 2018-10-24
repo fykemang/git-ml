@@ -27,13 +27,15 @@ end
 
 let print_hash_file f = print_endline (Util.hash_file f)
 
+let print_hash_str s = print_endline (Util.hash_str s)
+
 let print_hash s = print_endline (Util.hash_str s)
 
 let save_hash s = failwith "Unimplemented"
 
 let rec read_file file_chnl s = 
   try let cur_line = file_chnl |> input_line in
-    let s = s ^ cur_line in
+    let s = s ^ cur_line ^ "\n" in
     read_file file_chnl s with
   | End_of_file -> let _ = file_chnl |> close_in in s
 
@@ -45,8 +47,15 @@ let rec read_dir handle s =
   | End_of_file -> let _ = handle |> closedir in raise Not_found
 
 let cat s = 
-  let handle = opendir ".git-ml/objects" in
-  read_dir handle s
+  let fold_header = String.sub s 0 2  in
+  let fold_footer = String.sub s 2 (String.length s - 2) in(
+    try(
+      let ic = open_in (
+          ".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
+      let content = (read_file ic "") in
+      (print_endline content);
+    ) with e -> print_endline "Read Issue"
+  ) 
 
 (*let hash_object file = 
   let content = read_file (file |> open_in) "" in
@@ -57,8 +66,12 @@ let cat s =
 
 let hash_object file =
   let content = read_file (file |> open_in) "" in
-  let () = print_hash_file file in
-  write_hash_contents file content
+  let () = print_hash_str ("Blob "^content) in
+  write_hash_contents ("Blob "^content) ("Blob "^content)
+
+let hash_object_default file =
+  let content = read_file (file |> open_in) "" in
+  print_hash_str ("Blob "^content)
 
 let ls_tree s = failwith "Unimplemented"
 
