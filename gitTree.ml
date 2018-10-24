@@ -65,6 +65,9 @@ let rec tree_children_content (lst:t list) : string =
                     ("Tree_Object can only have children with "^
                      "value of type Tree_Object or File "))
 
+(** [write_hash_contents unhashed_adr file_content] writes file_content to 
+    the hash of unhashed_adr in the .git-ml/objects hashtable
+    It is designed to be used as a helper function **)
 let write_hash_contents (unhashed_adr:string) (file_content:string)=
   let hash_addr = (hash_str unhashed_adr) in 
   let fold_header = String.sub hash_addr 0 2  in
