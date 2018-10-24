@@ -27,6 +27,8 @@ end
 
 let print_hash_file f = print_endline (Util.hash_file f)
 
+let print_hash_str s = print_endline (Util.hash_str s)
+
 let print_hash s = print_endline (Util.hash_str s)
 
 let save_hash s = failwith "Unimplemented"
@@ -45,8 +47,19 @@ let rec read_dir handle s =
   | End_of_file -> let _ = handle |> closedir in raise Not_found
 
 let cat s = 
-  let handle = opendir ".git-ml/objects" in
-  read_dir handle s
+  let fold_header = String.sub s 0 2  in
+  let fold_footer = String.sub s 2 (String.length s - 2) in(
+    try (
+      chdir (".git-ml/objects/" ^ fold_header)
+    ) with 
+    |Unix_error _ -> print_endline "Unix Error" ;
+      try(
+        let oc = open_in fold_footer in
+        let content = (read_file oc fold_footer) in
+        print_endline content;
+        let () = close_in oc in ()
+      ) with e -> raise e
+  );()
 
 (*let hash_object file = 
   let content = read_file (file |> open_in) "" in
@@ -57,8 +70,12 @@ let cat s =
 
 let hash_object file =
   let content = read_file (file |> open_in) "" in
-  let () = print_hash_file file in
+  let () = print_hash_str ("Blob "^content) in
   write_hash_contents ("Blob "^content) ("Blob "^content)
+
+let hash_object_default file =
+  let content = read_file (file |> open_in) "" in
+  print_hash_str ("Blob "^content)
 
 let ls_tree s = failwith "Unimplemented"
 
@@ -100,7 +117,6 @@ let hash_of_git_object (obj : git_object) : string =
   | File s -> hash_str ("File " ^ s)
   | Commit s -> hash_str ("Commit " ^ s)
   | Ref s -> hash_str ("Ref " ^ s)
-
 
 
 let commit (message:string) (branch:string) (file_list:file_object list) = 

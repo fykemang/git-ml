@@ -14,10 +14,13 @@ val print_hash_file : string -> unit
 
 (** [cat s] is the content or type of an object given [s] its hashed 
     hex representation. *)
-val cat : string -> string
+val cat : string -> unit
 
 (** [hash_object] implements the function of hash-object*)
 val hash_object : string -> unit
+
+(** [hash_object_default] implements the function of hash-object*)
+val hash_object_default: string -> unit
 
 (** [log ()] returns a formatted string detailing all commits *)
 val log : unit -> string
