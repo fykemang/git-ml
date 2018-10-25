@@ -8,7 +8,7 @@ type git_object =
   | Ref of string
 
 (** [t] is the type of a git tree**)
-type t 
+type t = Leaf | Node of git_object * t list 
 
 (** [value t] gives the [git_object] at the root node of GitTree.t*)
 val value: t -> git_object 

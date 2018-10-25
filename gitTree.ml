@@ -16,6 +16,8 @@ let empty = Leaf
 let empty_tree_object =
   Node (Tree_Object ".", [])
 
+(** [equal_node_value n1 n2] is true if the value of the nodes n1 n2 are 
+    equal. Otherwise, its false. *)
 let equal_node_value n1 n2 = 
   match n1,n2 with
   | Leaf, Leaf -> true
@@ -39,7 +41,10 @@ let get_subdirectory_tree (subdirectory:string) = function
   | Leaf ->  Node(Tree_Object (subdirectory),[])
   | Node (_,lst) -> get_subdirectory_helper subdirectory lst   
 
-(** Ensures child lists do not have duplicate children *)
+(** [add_subtree_to_list subtree lst] is the tree list of children [lst] with
+    subtree [subtree] added to it if a Node as the same type and string value of
+    [subtree] is not in [lst]. If a Node of equal value exists in [lst] then 
+    that node is replaced with [tree] in [lst] *)
 let rec add_subtree_to_list tree = function
   | [] -> tree::[]
   | h::t when equal_node_value h tree -> tree::t
@@ -88,38 +93,32 @@ let rec tree_children_content (lst:t list) : string =
 
 let hash_of_tree (tree: t) : string = 
   match tree with 
-  | Node (o,lst) -> (match o with 
+  | Node (o, lst) -> (match o with 
       |Tree_Object s -> hash_str (tree_children_content lst)
       | _ -> failwith "Unimplemented in accordance with DRY")
   | Leaf -> raise (InvalidContentException "Cannot take hash of leaf")
 
-(** [write_hash_contents unhashed_adr file_content] writes file_content to 
-    the hash of unhashed_adr in the .git-ml/objects hashtable
-    It is designed to be used as a helper function **)
 let write_hash_contents (unhashed_adr:string) (file_content:string)=
   let hash_addr = (hash_str unhashed_adr) in 
   let fold_header = String.sub hash_addr 0 2  in
   let fold_footer = 
     String.sub hash_addr 2 (String.length hash_addr - 2) in
   let () = try mkdir (".git-ml/objects/" ^ fold_header) 0o700
-            with
-            | Unix_error _ -> () in
+    with
+    | Unix_error _ -> () in
   let oc = open_out (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
   output_string oc (file_content);
   let () = close_out oc in ()
-
-
-
 
 let rec hash_file_subtree = function
   | Leaf -> ()
   | Node(o,lst) -> match o with 
     | Tree_Object s -> write_hash_contents 
-                        (tree_children_content lst) (tree_children_content lst);
+                         (tree_children_content lst) (tree_children_content lst);
       List.hd (List.map hash_file_subtree lst); 
     | File s -> write_hash_contents 
-                 ("Blob "^(string_of_git_object (value (List.hd lst)))) 
-                 ("Blob "^(string_of_git_object (value (List.hd lst))))
+                  ("Blob "^(string_of_git_object (value (List.hd lst)))) 
+                  ("Blob "^(string_of_git_object (value (List.hd lst))))
     | _ -> raise (InvalidContentException "file_subtree can only have nodes
       with value of type Tree_object or File")
 

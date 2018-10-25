@@ -31,8 +31,6 @@ let print_hash_str s = print_endline (Util.hash_str s)
 
 let print_hash s = print_endline (Util.hash_str s)
 
-let save_hash s = failwith "Unimplemented"
-
 let rec read_file file_chnl s = 
   try let cur_line = file_chnl |> input_line in
     let s = s ^ cur_line ^ "\n" in
@@ -57,13 +55,6 @@ let cat s =
     ) with e -> print_endline "Read Issue"
   ) 
 
-(*let hash_object file = 
-  let content = read_file (file |> open_in) "" in
-  let out_chnl = open_out file in
-  let _ = output_string out_chnl content in 
-  let _ = out_chnl |> close_out 
-  in hash_file file*)
-
 let hash_object file =
   let content = read_file (file |> open_in) "" in
   let () = print_hash_str ("Blob "^content) in
@@ -86,14 +77,6 @@ let add_file_to_tree name content (tree : GitTree.t) =
                      ((GitTree.get_subdirectory_tree (subdir) tree) |> 
                       add_file_to_tree_helper t content) tree   
   in
-  (**let add_file_to_tree_helper name_lst content (tree:GitTree.t) = 
-     match name_lst with
-     | [] -> tree
-     | h::t -> let subdir = List.fold_right 
-                  (fun (a) (b:string) -> (a ^ "/" ^ b)) (List.rev t) "" in 
-      GitTree.get_subdirectory_tree subdir tree |>
-      GitTree.add_file h content
-     in*)
   add_file_to_tree_helper 
     (String.split_on_char '/' name) content tree 
 
@@ -144,10 +127,10 @@ let cat_file_to_git_object (s:string) =
   | _ -> failwith "Unimplemented"
 
 let add (file : string) : unit = try
-  chdir ".git-ml";
-  let file_index = openfile "index" [O_APPEND; O_CREAT; O_RDWR] 0o700 in
-  let bytes_written = write_substring file_index file 0 0 in
-  print_endline (string_of_int bytes_written);
-  close file_index;
+    chdir ".git-ml";
+    let file_index = openfile "index" [O_APPEND; O_CREAT; O_RDWR] 0o700 in
+    let bytes_written = write_substring file_index file 0 0 in
+    print_endline (string_of_int bytes_written);
+    close file_index;
   with
   | Unix_error (e, name, param) -> print_endline name
