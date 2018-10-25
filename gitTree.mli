@@ -1,5 +1,5 @@
 (** A [git_object] is the type of the elements of a git tree
-    A Tree_Object : git_object is different from a GitTree.t *)
+    A Tree_Object : [git_object] is different from a [GitTree.t]. *)
 type git_object =
   | Tree_Object of string
   | Blob of string
@@ -7,47 +7,51 @@ type git_object =
   | Commit of string
   | Ref of string
 
-(** [t] is the type of a git tree**)
+(** [t] is the type of a git tree. **)
 type t 
 
-(** [value t] gives the [git_object] at the root node of GitTree.t*)
+(** [value t] gives the [git_object] at the root node of [GitTree.t]. *)
 val value: t -> git_object 
 
-(** [empty] is the empty GitTree*)
+(** [empty] is the empty [GitTree]. *)
 val empty : t
 
-(** [empty_tree_object] is a tree with an empty [TreeObject "."]*)
+(** [empty_tree_object] is a tree with an empty [TreeObject "."] *)
 val empty_tree_object: t
 
-(** [add child o t] is the [GitTree.t] with the child o added to the root node*)
+(** [equal_node_value n1 n2] is [true] if [n1] is equal to [n2]. *)
+val equal_node_value: t -> t -> bool
+
+(** [add child o t] is the [GitTree.t] with the child [o] added to the 
+    root node. *)
 val add_child: git_object -> t -> t  
 
 (** [add child tree tree] is the [GitTree.t] with 
-    the tree subtree added as a child to the root node of tree*)
+    the tree subtree added as a child to the root node of tree. *)
 val add_child_tree: t -> t -> t  
 
 (** [add_file filename content tree] is the [GitTree.t] with the [filename] with
-    content [content] added to the root node of tree **)
+    content [content] added to the root node of tree. **)
 val add_file: string -> string -> t -> t
 
 (** [get_subdirectory subdirectory tree] is the [GitTree.t] corresponding to 
     the subdirectory subdirectory in [tree] if there is such a subdirectory in 
-    tree, otherwise it is a fresh subdirectory
+    tree, otherwise it is a fresh subdirectory.
 
     A subdirectory node is a node of type [Tree_Object name] with 
-    [name = subdirectory]*)
+    [name = subdirectory]. *)
 val get_subdirectory_tree: string -> t -> t 
 
 (** [tree_children_content lst] is the string representation of the 
-    content of the directory represented by the [lst]
+    content of the directory represented by the [lst].
     Requires:
         [lst] is a valid child list of a GitTree Node with value 
-        type [Tree_object]*)
+        type [Tree_object]. *)
 val tree_children_content: t list -> string
 
 (** [write_hash_contents unhashed_adr file_content] writes file_content to 
     the hash of unhashed_adr in the .git-ml/objects hashtable
-    It is designed to be used as a helper function **)
+    It is designed to be used as a helper function. **)
 val write_hash_contents: string -> string -> unit
 
 (** [hash_file_subtree tree] hashes and stores the valid contents of the tree
@@ -56,12 +60,12 @@ val write_hash_contents: string -> string -> unit
     [tree] has node with value of type [Tree_Object], [File], or [Blob] *)
 val hash_file_subtree: t -> unit
 
-(** [hash_of_tree tree] is the valid md5 hash of a GitTree with value of type 
+(** [hash_of_tree tree] is the valid md5 hash of a [GitTree] with value of type 
     [Tree_Object] 
     Requires:
-        [value tree] is of type Tree_Object*)
+        [value tree] is of type [Tree_Object]. *)
 val hash_of_tree: t -> string
 
 (** [string_of_git_object] is the string associated with a certain git object 
-    [string_of_git_object (File "test.txt")] would evaluate to ["test.txt"]*)
+    [string_of_git_object (File "test.txt")] would evaluate to ["test.txt"]. *)
 val string_of_git_object: git_object -> string
