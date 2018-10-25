@@ -1,28 +1,30 @@
-(* Check if there are multiple tags then it follows that there are groups
-   and it will parse groups. *)
 type spec = 
   | String of (string -> unit)
   | Unit of (unit -> unit)
 
 type tag = string * spec
-type verb = { name : string; usage : string; default : spec; tags : tag list }
+type cmd = { name : string; usage : string; default : spec; tags : tag list }
 
-exception Parse_err of string
-exception Verb_not_found of string
+type error = 
+  | Cmd_not_found
+  | Arg_not_found
+  | Tag_not_found
 
-let usage_string usage verbs =
+exception Parse_error of error * string
+
+let usage_string usage cmds =
   Format.sprintf "\nUsage: %s\nCommands:\n" usage ^ (
     List.fold_left (
-      fun acc verb ->
-        if (verb.usage <> "") 
-        then (Format.sprintf "@[@;<4 0>%-15s%s@]" verb.name verb.usage)::acc 
+      fun acc cmd ->
+        if (cmd.usage <> "") 
+        then (Format.sprintf "@[@;<4 0>%-15s%s@]" cmd.name cmd.usage)::acc 
         else acc
-    ) [] verbs
+    ) [] cmds
     |> String.concat "\n"
   )
 
-let print_usage usage verbs = 
-  print_endline (usage_string usage verbs)
+let print_usage usage cmds = 
+  print_endline (usage_string usage cmds)
 
 (** [check_arg_tag lst] true if the first string does not begin with '-'
     in a list of strings, false otherwise *)
@@ -30,41 +32,51 @@ let check_arg_tag = function
   | [] -> true
   | hd::tl -> Str.string_before hd 1 <> "-"
 
-let eval (args : string list) (spec : spec) : unit =
-  match spec with
+(** [eval args spec] evaluates the next argument in [args] based on [spec]
+    Raises: [Parse_error e s] if the next argument in [args] is missing and 
+    cannot be processed with [spec] *)
+let eval (args : string list) = function
   | String f when args <> [] -> List.hd args |> f
   | Unit f -> f ()
-  | _ -> raise (Parse_err "Can't evaluate missing arguments.")
+  | _ -> raise (Parse_error 
+                  (Arg_not_found, "can't evaluate missing arguments"))
 
+(** [parse_tags args tags] evaluates the next argument in [args] based on
+    [tags]
+    Raises: [Parse_error e s] if the next argument is not a tag in [tags] *)
 let parse_tags (args : string list) (tags : tag list) : unit =
   let tag = List.hd args in
   match List.assoc_opt tag tags with
-  | None -> raise (Parse_err "invalid tag for the given command.")
+  | None -> raise (Parse_error 
+                     (Tag_not_found, "invalid tag for the given command"))
   | Some spec -> eval (List.tl args) spec
 
-let parse_verbs (args : string list) (verbs : verb list) : unit  =
+(** [parse_verbs args cmds] evaluates the next argument in [args]
+    based on [cmds]
+    Raises: [Cmd_not_found s] if the next argument in [args] is not 
+            a command in [cmds] *)
+let parse_verbs (args : string list) (cmds : cmd list) : unit  =
   let fst_arg = List.hd args in
   let tl_arg = List.tl args in
   match List.fold_left (
-      fun acc verb ->
-        match acc with
-        | None -> if verb.name = fst_arg then Some verb else None
+      fun acc cmd -> match acc with
+        | None -> if cmd.name = fst_arg then Some cmd else None
         | Some v -> acc
-    ) None verbs with
-  | None -> raise (Verb_not_found "invalid command")
+    ) None cmds with
+  | None -> raise (Parse_error (Cmd_not_found, "command not found"))
   | Some {name; usage; default; tags} ->
     match tags with
     | [] -> eval tl_arg default
     | tags when check_arg_tag tl_arg -> eval tl_arg default
     | tags -> parse_tags tl_arg tags
 
-(* Will construct text for how to use a verb *)
+(* [make_verb_usage usage tags] describes how to use a specific cmd *)
 let make_verb_usage usage tags = failwith "unimplemented"
 
-(** [add_help_verb usg_msg verbs] is [verbs] with an added "help" 
-    verb *)
-let set_up_verbs (usg_msg : string) (verbs : verb list) : verb list =
-  let rec new_verbs () = 
+(** [add_help_verb usg_msg cmds] is [cmds] initialized with default help 
+    commands *)
+let set_up_verbs (usg_msg : string) (cmds : cmd list) : cmd list =
+  let rec new_verbs () =
     {
       name="help";
       usage="Display available commands.";
@@ -76,19 +88,18 @@ let set_up_verbs (usg_msg : string) (verbs : verb list) : verb list =
       usage="";
       default = Unit (fun () -> print_usage usg_msg (new_verbs ()));
       tags=[]
-    }::verbs in
+    }::cmds in
   new_verbs ()
 
-let parse args usg_msg verbs =
-  let init_verbs = set_up_verbs usg_msg verbs in
+let parse args usg_msg cmds =
+  let init_verbs = set_up_verbs usg_msg cmds in
   try
     if List.length args <> 0
     then parse_verbs args init_verbs
-    else raise (Verb_not_found "no command issued")
+    else raise (Parse_error (Cmd_not_found, "no command issued"))
   with
-  | Parse_err s -> print_endline ("fatal: " ^ s); 
-    print_endline (usage_string usg_msg init_verbs);
-  | Verb_not_found s ->
-    print_endline ("fatal: " ^ s);
-    print_endline (usage_string usg_msg init_verbs);
-  | Invalid_argument s -> print_endline s
+  | Parse_error (e, s) -> match e with
+    | Arg_not_found -> print_endline ("fatal: " ^ s)
+    | Cmd_not_found -> print_endline ("fatal: " ^ s);
+      print_endline (usage_string usg_msg init_verbs);
+    | Tag_not_found -> print_endline ("fatal: " ^ s)
