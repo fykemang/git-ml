@@ -44,12 +44,10 @@ let tree_tests = [
   make_value_test "t2val" t2 (File "f2");
   make_value_test "t3val" t3 (File "f3");
   make_value_test "treeval" tree (Tree_Object ".");
-
 ]
 
-
-let parse_tests = [
-
+let suite = "TEST SUITE" >::: List.flatten [
+  tree_tests
 ]
-let suite = "TEST SUITE" >::: List.flatten [tree_tests]
+
 let _ = run_test_tt_main suite

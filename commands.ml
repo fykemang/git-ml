@@ -31,7 +31,6 @@ let print_hash_str s = print_endline (Util.hash_str s)
 
 let print_hash s = print_endline (Util.hash_str s)
 
-
 (** [read_file file_chnl s] reads the [file_chnl] and outputs the content to [s],
     it closes [file_chnl] after reaching the end of file. *)
 let rec read_file file_chnl s = 
