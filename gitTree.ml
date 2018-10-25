@@ -32,6 +32,8 @@ let add_child (obj:git_object) = function
   | Leaf -> Node (obj,[])
   | Node (o,lst) -> Node (o,(Node (obj,[])::lst))
 
+(** [get_subdirectory_helper subdirectory lst] is the [GitTree] constructed 
+    from [subdirectory] and [lst]. *)
 let rec get_subdirectory_helper (subdirectory:string) = function
   | [] -> Node(Tree_Object (subdirectory),[])
   | h::t when (equal_node_value h (Node (Tree_Object subdirectory, []))) -> h
@@ -64,7 +66,7 @@ let add_file (filename:string) (file_content:string) = function
                              (Node ((Blob file_content),[])::[]))) 
                       (Node (o,lst))
 
-let string_of_git_object (o:git_object)=
+let string_of_git_object (o : git_object)=
   match o with
   | Tree_Object s -> s
   | Blob s -> s
