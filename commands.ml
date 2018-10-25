@@ -31,14 +31,18 @@ let print_hash_str s = print_endline (Util.hash_str s)
 
 let print_hash s = print_endline (Util.hash_str s)
 
-let save_hash s = failwith "Unimplemented"
+(* let save_hash s = failwith "Unimplemented" *)
 
+(** [read_file file_chnl s] reads the [file_chnl] and outputs the content to [s],
+    it closes [file_chnl] after reaching the end of file. *)
 let rec read_file file_chnl s = 
   try let cur_line = file_chnl |> input_line in
     let s = s ^ cur_line ^ "\n" in
     read_file file_chnl s with
   | End_of_file -> let _ = file_chnl |> close_in in s
 
+(** [read_dir handle s] reads the directory [dir] and outputs the content to
+    [s], it closes [handle] after reaching the end of file. *)
 let rec read_dir handle s = 
   try let cur_file = handle |> readdir in
     let hash = Util.hash_file cur_file in
@@ -77,6 +81,8 @@ let ls_tree s = failwith "Unimplemented"
 
 let log s = failwith "Unimplemented"
 
+(** [add_file_to_tree name content tree] adds the file with name [name] and 
+    content [content] to tree [tree]. *)
 let add_file_to_tree name content (tree : GitTree.t) =
   let rec add_file_to_tree_helper name_lst content (tree : GitTree.t) = 
     match name_lst with 
@@ -97,6 +103,8 @@ let add_file_to_tree name content (tree : GitTree.t) =
   add_file_to_tree_helper 
     (String.split_on_char '/' name) content tree 
 
+(** [file_list_to_tree file_list] is the [GitTree] constructed from 
+    [file_list]. *)
 let file_list_to_tree (file_list : file_object list) =
   let rec helper acc (lst : file_object list) = 
     match lst with 
@@ -132,11 +140,11 @@ let commit
     [string * string list] that is a list of filenames and file contents. 
     Mutually recurisve with [cat_file_to_git_object s] 
     Requires: 
-      pointer is a valid pointer to a tree*)
+      pointer is a valid pointer to a tree. *)
 let tree_content_to_file_list (pointer:string) =
   failwith "Unimplemented"
 
-(** This may not be at all useful *)
+(** This may not be at all useful. *)
 let cat_file_to_git_object (s:string) =
   match String.split_on_char ' ' s with
   | h::t when h = "Blob" -> Blob (List.fold_left (^) "" t )
@@ -144,10 +152,10 @@ let cat_file_to_git_object (s:string) =
   | _ -> failwith "Unimplemented"
 
 let add (file : string) : unit = try
-  chdir ".git-ml";
-  let file_index = openfile "index" [O_APPEND; O_CREAT; O_RDWR] 0o700 in
-  let bytes_written = write_substring file_index file 0 0 in
-  print_endline (string_of_int bytes_written);
-  close file_index;
+    chdir ".git-ml";
+    let file_index = openfile "index" [O_APPEND; O_CREAT; O_RDWR] 0o700 in
+    let bytes_written = write_substring file_index file 0 0 in
+    print_endline (string_of_int bytes_written);
+    close file_index;
   with
   | Unix_error (e, name, param) -> print_endline name

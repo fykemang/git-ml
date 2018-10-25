@@ -30,6 +30,8 @@ let add_child (obj:git_object) = function
   | Leaf -> Node (obj,[])
   | Node (o,lst) -> Node (o,(Node (obj,[])::lst))
 
+(** [get_subdirectory_helper subdirectory lst] is the [GitTree] constructed 
+    from [subdirectory] and [lst]. *)
 let rec get_subdirectory_helper (subdirectory:string) = function
   | [] -> Node(Tree_Object (subdirectory),[])
   | h::t when (equal_node_value h (Node (Tree_Object subdirectory, []))) -> h
@@ -39,7 +41,8 @@ let get_subdirectory_tree (subdirectory:string) = function
   | Leaf ->  Node(Tree_Object (subdirectory),[])
   | Node (_,lst) -> get_subdirectory_helper subdirectory lst   
 
-(** Ensures child lists do not have duplicate children *)
+(** [add_subtree_to_list tree] ensures child lists do not have duplicate 
+    children. *)
 let rec add_subtree_to_list tree = function
   | [] -> tree::[]
   | h::t when equal_node_value h tree -> tree::t
@@ -102,24 +105,21 @@ let write_hash_contents (unhashed_adr:string) (file_content:string)=
   let fold_footer = 
     String.sub hash_addr 2 (String.length hash_addr - 2) in
   let () = try mkdir (".git-ml/objects/" ^ fold_header) 0o700
-            with
-            | Unix_error _ -> () in
+    with
+    | Unix_error _ -> () in
   let oc = open_out (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
   output_string oc (file_content);
   let () = close_out oc in ()
-
-
-
 
 let rec hash_file_subtree = function
   | Leaf -> ()
   | Node(o,lst) -> match o with 
     | Tree_Object s -> write_hash_contents 
-                        (tree_children_content lst) (tree_children_content lst);
+                         (tree_children_content lst) (tree_children_content lst);
       List.hd (List.map hash_file_subtree lst); 
     | File s -> write_hash_contents 
-                 ("Blob "^(string_of_git_object (value (List.hd lst)))) 
-                 ("Blob "^(string_of_git_object (value (List.hd lst))))
+                  ("Blob "^(string_of_git_object (value (List.hd lst)))) 
+                  ("Blob "^(string_of_git_object (value (List.hd lst))))
     | _ -> raise (InvalidContentException "file_subtree can only have nodes
       with value of type Tree_object or File")
 
