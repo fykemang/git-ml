@@ -31,13 +31,9 @@ let print_hash_str s = print_endline (Util.hash_str s)
 
 let print_hash s = print_endline (Util.hash_str s)
 
-<<<<<<< HEAD
-=======
-(* let save_hash s = failwith "Unimplemented" *)
 
 (** [read_file file_chnl s] reads the [file_chnl] and outputs the content to [s],
     it closes [file_chnl] after reaching the end of file. *)
->>>>>>> da7822053b1975fb48733e34feefd883af2e63b9
 let rec read_file file_chnl s = 
   try let cur_line = file_chnl |> input_line in
     let s = s ^ cur_line ^ "\n" in
