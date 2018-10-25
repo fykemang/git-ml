@@ -7,5 +7,7 @@ let lst =
   ("dir/dir/test3.html", "<body>test3</body>")::
   ("test1.html","test1")::
   ("dir1/dir2/test.html", "<b>right order</b>")::
-  ("dir/test2.html","test1")::[]
+  ("dir/test2.html","test1")::
+  ("superdirectory/subdirectory/file.txt", "10/24/2018")::
+  ("dummy.txt", "some text")::[]
 let () = Commands.commit ("commit message") ("master") lst

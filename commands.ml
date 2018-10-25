@@ -31,8 +31,6 @@ let print_hash_str s = print_endline (Util.hash_str s)
 
 let print_hash s = print_endline (Util.hash_str s)
 
-(* let save_hash s = failwith "Unimplemented" *)
-
 (** [read_file file_chnl s] reads the [file_chnl] and outputs the content to [s],
     it closes [file_chnl] after reaching the end of file. *)
 let rec read_file file_chnl s = 
@@ -61,13 +59,6 @@ let cat s =
     ) with e -> print_endline "Read Issue"
   ) 
 
-(*let hash_object file = 
-  let content = read_file (file |> open_in) "" in
-  let out_chnl = open_out file in
-  let _ = output_string out_chnl content in 
-  let _ = out_chnl |> close_out 
-  in hash_file file*)
-
 let hash_object file =
   let content = read_file (file |> open_in) "" in
   let () = print_hash_str ("Blob "^content) in
@@ -92,14 +83,6 @@ let add_file_to_tree name content (tree : GitTree.t) =
                      ((GitTree.get_subdirectory_tree (subdir) tree) |> 
                       add_file_to_tree_helper t content) tree   
   in
-  (**let add_file_to_tree_helper name_lst content (tree:GitTree.t) = 
-     match name_lst with
-     | [] -> tree
-     | h::t -> let subdir = List.fold_right 
-                  (fun (a) (b:string) -> (a ^ "/" ^ b)) (List.rev t) "" in 
-      GitTree.get_subdirectory_tree subdir tree |>
-      GitTree.add_file h content
-     in*)
   add_file_to_tree_helper 
     (String.split_on_char '/' name) content tree 
 
