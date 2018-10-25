@@ -19,6 +19,9 @@ val empty : t
 (** [empty_tree_object] is a tree with an empty [TreeObject "."] *)
 val empty_tree_object: t
 
+(** [size tree] is the number of nodes in [tree] *)
+val size: t -> int
+
 (** [equal_node_value n1 n2] is [true] if [n1] is equal to [n2]. *)
 val equal_node_value: t -> t -> bool
 
