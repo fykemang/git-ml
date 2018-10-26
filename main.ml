@@ -38,7 +38,7 @@ let cmd_list = [
 
 let main () = begin
   let args = sub Sys.argv 1 (length Sys.argv - 1) |> to_list in
-  parse args "EXECUTABLE [COMMAND] [FLAGS] <INPUT>" cmd_list
+  parse args "EXECUTABLE [COMMAND] [OPTIONS] <INPUT>" cmd_list
 end
 
 let () = main ()

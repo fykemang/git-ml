@@ -9,7 +9,7 @@ type spec =
 type error = 
   | Cmd_not_found
   | Arg_not_found
-  | Opt_not_found
+  | Opt_not_found of string
 
 (** Raised whenever an error is encountered while parsing. The first 
     component is the error code and the second component is the 
@@ -44,10 +44,13 @@ val parse : string list -> string -> cmd list -> unit
 
 (** [make_usage usage cmds] is a string describing possible cmds 
     and a short description of the purpose of each of the cmds *)
-val usage_string : string -> cmd list -> string
+val usage_string : string -> 
+  (string, string * spec * (string, string * spec) Hashtbl.t) Hashtbl.t -> 
+  string
 
 (** [print_usage usage verbs] prints all possible commands and a 
     short description of each cmd *)
-val print_usage : string -> cmd list -> unit
+val print_usage : string -> 
+  (string, string * spec * (string, string * spec) Hashtbl.t) Hashtbl.t -> unit
 
 
