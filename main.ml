@@ -8,27 +8,31 @@ let cmd_list = [
     name = "hash-object"; 
     usage = "Hashes a file."; 
     default = Parse.String (hash_object_default);
-    tags = [
-      ("-w", Parse.String (hash_object))
+    opts = [
+      { 
+        name = "-w"; 
+        usage = "Stores hashed object in directory"; 
+        action = Parse.String (hash_object)
+      }
     ]
   };
   {
     name = "cat-file";
     usage = "Looks for a file based on id.";
     default = Parse.String (cat);
-    tags = []
+    opts = []
   };
   {
     name = "init";
     usage = "Intializes repository.";
     default = Parse.Unit (Commands.init);
-    tags = []
+    opts = []
   };
   {
     name = "add";
     usage = "Add file to the staging area.";
     default = Parse.String (add);
-    tags = []
+    opts = []
   }
 ]
 
