@@ -16,20 +16,23 @@ exception Duplicate_cmd_error
 let usage_string usage cmds =
   let fold_helper key (usage, default, opts) acc =
     if (usage <> "")
-      then (Format.sprintf "@[@;<4 0>%-15s%s@]" key usage)::acc 
-      else acc in
+    then (Format.sprintf "@[@;<4 0>%-15s%s@]" key usage)::acc 
+    else acc in
   Hashtbl.fold fold_helper cmds [Format.sprintf "\nUsage: %s\nCommands:" usage]
   |> List.rev |> String.concat "\n"
 
-(* [cmd_usage usage opts] describes how to use a specific cmd and lists all
+(* [cmd_usage_string usage opts] describes how to use a specific cmd and lists all
    possible options for the given command. *)
-let cmd_usage name usage opts =
+let cmd_usage_string name usage opts =
   let fold_helper key (usage, _) acc =
     if (usage <> "")
     then (Format.sprintf "@[@;<4 0>%-15s%s@]" key usage)::acc
     else acc in
-  Hashtbl.fold fold_helper opts [Format.sprintf "\n%s: %s\nOptions:" name usage]
-  |> List.rev |> String.concat "\n"
+  if Hashtbl.length opts = 0
+  then Format.sprintf "\n%s: %s\nOptions: No options available." name usage 
+  else Hashtbl.fold fold_helper opts 
+      [Format.sprintf "\n%s: %s\nOptions:" name usage]
+       |> List.rev |> String.concat "\n"
 
 let print_usage usage cmds = print_endline (usage_string usage cmds)
 
@@ -71,7 +74,7 @@ let parse_cmd (args : string list) cmds : unit  =
   | hd::tl -> match Hashtbl.find_opt cmds hd with
     | None -> raise (Parse_error (Cmd_not_found, "command not found"))
     | Some (_, default, opts) when check_arg_opt tl -> eval tl default
-    | Some (usage, default, opts) -> parse_opts tl hd opts
+    | Some (_, _, opts) -> parse_opts tl hd opts
 
 (** [add_help_verb usg_msg cmds] is [cmds] initialized with default help 
     commands *)
@@ -82,7 +85,7 @@ let init_default_cmds (usg_msg : string) cmds =
     Hashtbl.create 10
   ); 
   Hashtbl.add cmds "--help" (
-    "Display available commands.",
+    "",
     Unit (fun () -> print_usage usg_msg cmds),
     Hashtbl.create 10
   ); cmds
@@ -112,10 +115,14 @@ let cmds_to_table (cmds : cmd list) =
       else Hashtbl.add acc name (usage, default, opts_to_table opts); acc;
   ) tbl cmds
 
+(** [find_cmd_opts cmd cmds] are the options of a command [cmd]
+    Raises: [Parse_error] if the command does not exist in [cmds] *)
 let find_cmd_opts cmd cmds = match Hashtbl.find_opt cmds cmd with
   | None -> raise (Parse_error (Cmd_not_found, "command not found"))
   | Some (usage, default, opts) -> opts
 
+(** [find_cmd_usage cmd cmds] is the usage message of a command [cmd]
+    Raises: [Parse_error] if the command does not exist in [cmds] *)
 let find_cmd_usage cmd cmds = match Hashtbl.find_opt cmds cmd with
   | None -> raise (Parse_error (Cmd_not_found, "command not found"))
   | Some (usage, default, opts) -> usage
@@ -132,5 +139,5 @@ let parse args usg_msg cmds =
     | Cmd_not_found -> print_endline ("fatal: " ^ s);
       print_endline (usage_string usg_msg init_cmds);
     | Opt_not_found cmd -> print_endline ("fatal: " ^ s);
-      print_endline (cmd_usage cmd (find_cmd_usage cmd init_cmds)
+      print_endline (cmd_usage_string cmd (find_cmd_usage cmd init_cmds)
                        (find_cmd_opts cmd init_cmds))
