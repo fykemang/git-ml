@@ -83,7 +83,7 @@ let init_default_cmds (usg_msg : string) cmds =
     "Display available commands.",
     Unit (fun () -> print_usage usg_msg cmds),
     Hashtbl.create 10
-  ); 
+  );
   Hashtbl.add cmds "--help" (
     "",
     Unit (fun () -> print_usage usg_msg cmds),

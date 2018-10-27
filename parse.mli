@@ -43,13 +43,13 @@ type cmd = { name: string; usage: string; default: spec; opts: opt list }
 val parse : string list -> string -> cmd list -> unit
 
 (** [make_usage usage cmds] is a string describing possible cmds 
-    and a short description of the purpose of each of the cmds *)
+    and a short description of the purpose of each of the commands in [cmds] *)
 val usage_string : string -> 
   (string, string * spec * (string, string * spec) Hashtbl.t) Hashtbl.t -> 
   string
 
-(** [print_usage usage verbs] prints all possible commands and a 
-    short description of each cmd *)
+(** [print_usage usage verbs] prints out the output from [usage_string] 
+    to stdout *)
 val print_usage : string -> 
   (string, string * spec * (string, string * spec) Hashtbl.t) Hashtbl.t -> unit
 
