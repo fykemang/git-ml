@@ -15,10 +15,15 @@ let init () = begin
     mkdir "objects" 0o700;
     mkdir "info" 0o700;
     mkdir "refs" 0o700;
+    mkdir "logs" 0o700;
     mkdir "branches" 0o700;
     chdir "refs";
     mkdir "heads" 0o700;
     mkdir "tags" 0o700;
+    chdir "../logs";
+    mkdir "refs" 0o700;
+    chdir "refs";
+    mkdir "heads" 0o700;
     print_endline ("Initialized git-ml repository in " ^ curr_dir);
   with
   | Unix_error (EEXIST, func, file) ->
@@ -105,20 +110,50 @@ let hash_of_git_object (obj : git_object) : string =
   | Commit s -> hash_str ("Commit " ^ s)
   | Ref s -> hash_str ("Ref " ^ s)
 
+(** [last_commit_hash ic_ref] gives the last commit for a given in_channel 
+    [ic_ref] to a valid ref log file. 
+    Requires: [ic_ref] is an in_channel to a valid ref log file**)
+let last_commit_hash (ic_ref:in_channel) =
+  let rec last_line = function
+    | [] -> ""
+    | h::[] -> h
+    | h::t -> last_line t
+  in 
+  let commit_string_list = (
+    really_input_string ic_ref (in_channel_length ic_ref) |>
+    String.split_on_char '\n' |> last_line |> String.split_on_char ' ' ) in
+  List.nth commit_string_list 1
+
 let commit 
     (message:string) 
     (branch:string) 
     (file_list:file_object list) : unit = 
-  let tree = file_list_to_tree file_list in 
-  let oc = open_out (".git-ml/refs/heads/" ^ branch) in 
-  output_string oc ("Tree_Object " ^ (GitTree.hash_of_tree (tree))
-                    ^ "\n");
-  output_string oc ("author Root Author <root@3110.org> " ^
-                    (hash_str "root@3110.org")^"\n");
-  output_string oc ("commiter Root Author <root@3110.org> " ^
-                    (hash_str "root@3110.org") ^ "\n");
-  GitTree.hash_file_subtree tree
-
+  let tree = file_list_to_tree file_list in
+  let commit_string =  "Tree_Object " ^ (GitTree.hash_of_tree (tree))
+                       ^ "\n" ^ "author Root Author <root@3110.org> " ^
+                       (hash_str "root@3110.org") ^ "\n" ^ 
+                       "commiter Root Author <root@3110.org> " ^
+                       (hash_str "root@3110.org") ^ "\n\n" ^ 
+                       message in
+  write_hash_contents commit_string commit_string;
+  let oc = open_out (".git-ml/refs/heads/" ^ branch)  in 
+  output_string oc (hash_str commit_string);
+  try 
+    let in_ref = open_in (".git-ml/logs/refs/heads/" ^ branch) in  
+    let last_hash = last_commit_hash in_ref in 
+    let oc_ref = open_out_gen 
+        [Open_append] 0o666 (".git-ml/logs/refs/heads/" ^ branch) in
+    output_string oc_ref ("\n" ^ last_hash ^ " " ^ (hash_str commit_string) ^ " " ^ 
+                          "Root Author <root@3110.org> " ^ "commit: " 
+                          ^ message);
+    GitTree.hash_file_subtree tree
+  with e -> (
+      let last_hash = "00000000000000000000000000000000" in 
+      let oc_ref = open_out (".git-ml/logs/refs/heads/" ^ branch) in
+      output_string oc_ref (last_hash ^ " " ^ (hash_str commit_string) ^ " " ^ 
+                            "Root Author <root@3110.org> " ^ "commit (inital) : " 
+                            ^ message););
+    GitTree.hash_file_subtree tree
 (** [tree_content_to_file_list pointer] is the file list of type 
     [string * string list] that is a list of filenames and file contents. 
     Mutually recurisve with [cat_file_to_git_object s] 

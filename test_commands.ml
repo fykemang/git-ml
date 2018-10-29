@@ -10,4 +10,6 @@ let lst =
   ("dir/test2.html","test1")::
   ("superdirectory/subdirectory/file.txt", "10/24/2018")::
   ("dummy.txt", "some text")::[]
-let () = Commands.commit ("commit message") ("master") lst
+let lst = 
+  ("super/sub/hello.txt", "hello world")::[]
+let () = Commands.commit ("fifth message") ("master") lst
