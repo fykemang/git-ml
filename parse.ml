@@ -29,7 +29,7 @@ let cmd_usage_string name usage opts =
     then (Format.sprintf "@[@;<4 0>%-15s%s@]" key usage)::acc
     else acc in
   if Hashtbl.length opts = 0
-  then Format.sprintf "\n%s: %s\nNo options available." name usage 
+  then Format.sprintf "\n%s: %s\nOptions: No options available." name usage 
   else Hashtbl.fold fold_helper opts 
       [Format.sprintf "\n%s: %s\nOptions:" name usage]
        |> List.rev |> String.concat "\n"
@@ -49,17 +49,16 @@ let eval (args : string list) = function
   | String f when args <> [] -> List.hd args |> f
   | Unit f when args = [] -> f ()
   | _ -> raise (Parse_error (Arg_not_found, "can't evaluate missing or " ^
-    "extraneous arguments"))
+                                            "extraneous arguments"))
 
 (** [parse_opts args opts] evaluates the next argument in [args] based on
     [opts]
     Raises: [Parse_error err s] if the next argument is not a opt in [opts] *)
-let parse_opts 
-    (args : string list)
-    (curr_cmd : string)
-    opts : unit =
+let parse_opts (args : string list) (curr_cmd : string) opts : unit =
   match args with
   | [] -> raise (Parse_error ((Opt_not_found curr_cmd), "option not found"))
+  | hd::tl when not (check_arg_opt tl) -> 
+    raise (Parse_error ((Opt_not_found curr_cmd), "double option not allowed"))
   | hd::tl -> match Hashtbl.find_opt opts hd with
     | None -> raise (Parse_error (
         (Opt_not_found curr_cmd), "invalid option for the given command"))
@@ -118,13 +117,15 @@ let cmds_to_table (cmds : cmd list) =
 
 (** [find_cmd_opts cmd cmds] are the options of a command [cmd]
     Raises: [Parse_error] if the command does not exist in [cmds] *)
-let find_cmd_opts (cmd : string) cmds = match Hashtbl.find_opt cmds cmd with
+let find_cmd_opts (cmd : string) cmds = 
+  match Hashtbl.find_opt cmds cmd with
   | None -> raise (Parse_error (Cmd_not_found, "command not found"))
   | Some (usage, default, opts) -> opts
 
 (** [find_cmd_usage cmd cmds] is the usage message of a command [cmd]
     Raises: [Parse_error] if the command does not exist in [cmds] *)
-let find_cmd_usage (cmd : string) cmds = match Hashtbl.find_opt cmds cmd with
+let find_cmd_usage (cmd : string) cmds = 
+  match Hashtbl.find_opt cmds cmd with
   | None -> raise (Parse_error (Cmd_not_found, "command not found"))
   | Some (usage, default, opts) -> usage
 
