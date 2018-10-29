@@ -25,48 +25,44 @@ let init () = begin
     print_endline (file ^ " already exists.");
 end
 
-let print_hash_file f = print_endline (Util.hash_file f)
-
-let print_hash_str s = print_endline (Util.hash_str s)
-
-let print_hash s = print_endline (Util.hash_str s)
-
 (** [read_file file_chnl s] reads the [file_chnl] and outputs the content to [s],
     it closes [file_chnl] after reaching the end of file. *)
-let rec read_file file_chnl s = 
-  try let cur_line = file_chnl |> input_line in
-    let s = s ^ cur_line ^ "\n" in
-    read_file file_chnl s with
+let rec read_file ?s:(s = "") file_chnl =
+  try
+    let cur_line = file_chnl |> input_line in
+    read_file file_chnl ~s: (s ^ cur_line ^ "\n")
+  with
   | End_of_file -> let _ = file_chnl |> close_in in s
 
 (** [read_dir handle s] reads the directory [dir] and outputs the content to
     [s], it closes [handle] after reaching the end of file. *)
-let rec read_dir handle s = 
-  try let cur_file = handle |> readdir in
+let rec read_dir handle s =
+  try
+    let cur_file = handle |> readdir in
     let hash = Util.hash_file cur_file in
-    if hash = s then read_file (open_in cur_file) ""
-    else read_dir handle s with
+    if hash = s then read_file (open_in cur_file)
+    else read_dir handle s 
+  with
   | End_of_file -> let _ = handle |> closedir in raise Not_found
 
 let cat s = 
   let fold_header = String.sub s 0 2  in
   let fold_footer = String.sub s 2 (String.length s - 2) in(
     try(
-      let ic = open_in (
-          ".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
-      let content = (read_file ic "") in
+      let ic = open_in (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
+      let content = (read_file ic) in
       (print_endline content);
     ) with e -> print_endline "Read Issue"
   ) 
 
 let hash_object file =
-  let content = read_file (file |> open_in) "" in
-  let () = print_hash_str ("Blob "^content) in
-  write_hash_contents ("Blob "^content) ("Blob "^content)
+  let content = read_file (file |> open_in) in
+  Util.print_hash_str ("Blob " ^ content);
+  write_hash_contents ("Blob " ^ content) ("Blob " ^ content)
 
 let hash_object_default file =
-  let content = read_file (file |> open_in) "" in
-  print_hash_str ("Blob "^content)
+  let content = read_file (file |> open_in) in
+  Util.print_hash_str ("Blob " ^ content)
 
 let ls_tree s = failwith "Unimplemented"
 
@@ -97,8 +93,7 @@ let file_list_to_tree (file_list : file_object list) =
   in helper GitTree.empty_tree_object file_list
 
 (** [hash_of_git_object obj] is the string hash of a given [git_object] obj *)
-let hash_of_git_object (obj : git_object) : string = 
-  match obj with
+let hash_of_git_object = function
   | Tree_Object s -> failwith "Invalid use of function, use hash_of_tree"
   | Blob s -> hash_str ("Blob " ^ s)
   | File s -> hash_str ("File " ^ s)
@@ -136,9 +131,16 @@ let cat_file_to_git_object (s:string) =
 
 let add (file : string) : unit = try
     chdir ".git-ml";
-    let file_index = openfile "index" [O_APPEND; O_CREAT; O_RDWR] 0o700 in
-    let bytes_written = write_substring file_index file 0 0 in
-    print_endline (string_of_int bytes_written);
-    close file_index;
+    let index_out_ch = open_out_gen [Open_creat; Open_append] 0o700 "index" in
+    chdir "../";
+    let file_in_ch = file |> open_in in
+    let file_content = "Blob " ^ (read_file file_in_ch) in
+    let file_content_hash = Util.hash_str file_content in
+    write_hash_contents file_content file_content;
+    Printf.fprintf index_out_ch "%s %s\n" file file_content_hash;
+    close_out index_out_ch;
+    close_in file_in_ch;
   with
-  | Unix_error (e, name, param) -> print_endline name
+  | Unix_error (e, name, param) -> print_endline name;
+    print_endline param;
+

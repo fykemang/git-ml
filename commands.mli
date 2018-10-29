@@ -6,15 +6,6 @@ type file_object = filename * file_content
     with default files and folders. *)
 val init : unit -> unit
 
-(** [print_hash s] prints out the hash of a given object. *)
-val print_hash : string -> unit
-
-(** [print_hash_str s]  prints out the hash of [s]. *)
-val print_hash_str : string -> unit
-
-(** [print_hash_file f] prints out the hash of a given object. *)
-val print_hash_file : string -> unit
-
 (** [cat s] is the content or type of an object given [s] its hashed 
     hex representation. *)
 val cat : string -> unit
