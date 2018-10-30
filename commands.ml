@@ -180,14 +180,28 @@ let cat_file_to_git_object (s:string) =
   | h::t when h = "Tree_Object" -> Tree_Object (List.fold_left (^) "" t ) 
   | _ -> failwith "Unimplemented"
 
-let tag str = 
+(*let tag str = 
   try 
     let path = read_file (".git-ml/HEAD" |> open_in) in
     let content = read_file (path |> open_in) in  
     let oc = open_out (".git-ml/refs/tags" ^ str) in
     output_string oc (content); close_out oc
   with 
-  | Unix_error _ -> ()
+  | Unix_error _ -> ()*)
+
+
+let tag str = 
+  let commit_path = input_line (open_in ".git-ml/HEAD") in
+  if (not (Sys.file_exists (".git-ml/" ^commit_path))) 
+  then raise (FileNotFound ("No such file: " ^ commit_path))
+  else (
+    let commit_hash = input_line (open_in (".git-ml/" ^commit_path)) in 
+    try 
+      let oc = open_out (".git-ml/refs/tags/" ^ str) in
+      output_string oc (commit_hash); close_out oc
+    with 
+    | Unix_error _ -> ()
+  )
 
 (** [tree_hash_to_git_tree hash_adr] is the GitTree.t of the Tree_Object at
     hash_adr. 
