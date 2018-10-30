@@ -108,10 +108,13 @@ let write_hash_contents (unhashed_adr:string) (file_content:string) =
   let hash_addr = hash_str unhashed_adr in
   let fold_header = String.sub hash_addr 0 2  in
   let fold_footer = String.sub hash_addr 2 (String.length hash_addr - 2) in
-  try mkdir (".git-ml/objects/" ^ fold_header) 0o700 with | Unix_error _ -> ();
+  try 
+    mkdir (".git-ml/objects/" ^ fold_header) 0o700;
     let oc = open_out (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
     output_string oc (file_content);
     close_out oc
+  with 
+  | Unix_error _ -> ()
 
 let rec hash_file_subtree = function
   | Leaf -> ()

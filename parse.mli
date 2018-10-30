@@ -1,4 +1,5 @@
-(** Parses command line arguments.*)
+(** Extremely basic command line parser geared toward git style of
+    commands *)
 
 (** Specifications which map an argument type to a function. *)
 type spec = 
