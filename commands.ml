@@ -62,6 +62,18 @@ let cat s =
     ) with e -> print_endline "Read Issue"
   ) 
 
+(** [cat_string s] is the content of the file at hash_adr s*)
+let cat_string s = 
+  let fold_header = String.sub s 0 2  in
+  let fold_footer = String.sub s 2 (String.length s - 2) in(
+    try(
+      let ic = open_in (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
+      let content = read_file ic in
+      content;
+    ) with e -> raise (FileNotFound 
+                         ("file not found: " ^ fold_header ^ "/" ^ fold_footer))
+  )
+
 let hash_object file =
   let content = read_file (file |> open_in) in
   Util.print_hash_str ("Blob " ^ content);
@@ -168,16 +180,28 @@ let cat_file_to_git_object (s:string) =
   | h::t when h = "Tree_Object" -> Tree_Object (List.fold_left (^) "" t ) 
   | _ -> failwith "Unimplemented"
 
+(** [tree_hash_to_git_tree hash_adr] is the GitTree.t of the Tree_Object at
+    hash_adr. 
+    Requires: [hash_adr] is a valid hash adress to a Tree_Object*)
+let rec tree_hash_to_git_tree hash_adr =
+  let rec helper (lst:string list) acc =
+    match lst with 
+    | [] -> ()
+    | h::t -> failwith "unimplemented"
+  in
+  cat_string hash_adr |>
+  String.split_on_char '\n' |> failwith "unimplemnetd"
+
 let current_head_to_git_tree s =
   let commit_path = input_line (open_in ".git-ml/HEAD") in
   if (not (Sys.file_exists commit_path)) 
   then raise (FileNotFound ("No such file: " ^ commit_path))
   else (
     let commit_hash = input_line (open_in commit_path) in
-    GitTree.empty
+    cat_string commit_hash |> String.split_on_char '\n' |>
+    List.hd |> String.split_on_char ' ' |> List.tl |> List.hd |>
+    failwith "unimplmeneted"
   )
-
-
 
 let add (file : string) : unit = try
     chdir ".git-ml";
