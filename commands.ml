@@ -182,17 +182,33 @@ let cat_file_to_git_object (s:string) =
 
 (** [tree_hash_to_git_tree hash_adr] is the GitTree.t of the Tree_Object at
     hash_adr. 
-    Requires: [hash_adr] is a valid hash adress to a Tree_Object*)
-let rec tree_hash_to_git_tree hash_adr =
-  let rec helper (lst:string list) acc =
+    Requires: [hash_adr] is a valid hash adress to a Tree_Object *)
+let rec tree_hash_to_git_tree name hash_adr =
+  let rec helper (lst:string list) acc : GitTree.t list =
     match lst with 
-    | [] -> ()
-    | h::t -> failwith "unimplemented"
+    | [] -> acc
+    | h::tail -> match String.split_on_char ' ' h with 
+      | h::t when h = "Tree_Object" -> 
+        helper tail ((tree_hash_to_git_tree (List.nth t 1) (List.nth t 0))::acc)
+      | h::t when h = "File" -> 
+        helper tail ((Node ((File (List.nth t 1)), 
+                            ((helper ((cat_string (List.nth t 0)) 
+                                      |> (String.split_on_char '\n')) []
+                             ))))::acc)
+      | h::t when h = "Blob" -> 
+        Node ((Blob 
+                 (let s = List.fold_left (fun a b -> a ^ " " ^ b) "" t in  
+                  String.sub s 1 (String.length s - 1)))
+             ,[])::acc
+      | _ -> failwith "helper only operates on Tree_Object, File or Blob"
   in
-  cat_string hash_adr |>
-  String.split_on_char '\n' |> failwith "unimplemnetd"
+  let spl = (
+    cat_string hash_adr |>
+    String.split_on_char '\n') in 
+  let children = helper spl [] in Node (Tree_Object name, children)
 
-let current_head_to_git_tree s =
+
+let current_head_to_git_tree () =
   let commit_path = input_line (open_in ".git-ml/HEAD") in
   if (not (Sys.file_exists commit_path)) 
   then raise (FileNotFound ("No such file: " ^ commit_path))
@@ -200,7 +216,7 @@ let current_head_to_git_tree s =
     let commit_hash = input_line (open_in commit_path) in
     cat_string commit_hash |> String.split_on_char '\n' |>
     List.hd |> String.split_on_char ' ' |> List.tl |> List.hd |>
-    failwith "unimplmeneted"
+    tree_hash_to_git_tree "."
   )
 
 let add (file : string) : unit = try

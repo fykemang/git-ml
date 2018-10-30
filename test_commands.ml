@@ -13,3 +13,5 @@ let lst =
 let lst = 
   ("super/sub/hello.txt", "hello world")::[]
 let () = Commands.commit ("fifth message") ("master") lst
+let () = 
+  (Commands.file_list_to_tree lst) |> GitTree.pp_git_tree |> print_endline)

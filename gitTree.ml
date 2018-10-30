@@ -128,3 +128,23 @@ let rec hash_file_subtree = function
     | _ -> raise (InvalidContentException "file_subtree can only have nodes
       with value of type Tree_object or File")
 
+
+
+let rec pp_git_tree (acc:string) (tree:t) = 
+  let rec pp_git_tree_children acc = function
+    | [] -> acc
+    | Leaf::t -> failwith "There should be no leaves in GitTree"
+    | Node (o, lst)::t -> pp_git_tree_children (acc ^ 
+                                                pp_git_tree "" (Node(o,lst))) t
+  in 
+  match tree with
+  | Leaf -> ""
+  | Node (o,lst) -> match o with 
+    |Tree_Object s -> acc ^ (tree_children_content lst) ^ "\n" ^
+                      (pp_git_tree_children "" lst)
+    |File s -> acc ^ "File " ^ s ^ "\n" ^ (pp_git_tree_children "" lst)
+    |Blob s -> acc ^ "Blob " ^ s ^ "\n" ^ (pp_git_tree_children "" lst)
+    |_ -> acc ^ "pretty printing not supported for this node" ^ 
+          (pp_git_tree_children "" lst)
+
+
