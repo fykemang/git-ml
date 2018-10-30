@@ -6,6 +6,8 @@ type filename = string
 type file_content = string
 type file_object = filename * file_content
 
+
+exception FileNotFound of string 
 let init () = begin
   try
     let curr_dir = Unix.getcwd () in
@@ -133,6 +135,8 @@ let commit
   write_hash_contents commit_string commit_string;
   let oc = open_out (".git-ml/refs/heads/" ^ branch)  in 
   output_string oc (hash_str commit_string);
+  let oc_HEAD = open_out (".git-ml/HEAD") in
+  output_string oc_HEAD ("refs/heads/" ^ branch);
   try 
     let in_ref = open_in (".git-ml/logs/refs/heads/" ^ branch) in  
     let last_hash = last_commit_hash in_ref in 
@@ -149,6 +153,7 @@ let commit
                             "Root Author <root@3110.org> " ^ "commit (inital) : " 
                             ^ message););
     GitTree.hash_file_subtree tree
+
 (** [tree_content_to_file_list pointer] is the file list of type 
     [string * string list] that is a list of filenames and file contents. 
     Mutually recurisve with [cat_file_to_git_object s] 
@@ -163,6 +168,17 @@ let cat_file_to_git_object (s:string) =
   | h::t when h = "Blob" -> Blob (List.fold_left (^) "" t )
   | h::t when h = "Tree_Object" -> Tree_Object (List.fold_left (^) "" t ) 
   | _ -> failwith "Unimplemented"
+
+let current_head_to_git_tree s =
+  let commit_path = input_line (open_in ".git-ml/HEAD") in
+  if (not (Sys.file_exists commit_path)) 
+  then raise (FileNotFound ("No such file: " ^ commit_path))
+  else (
+    let commit_hash = input_line (open_in commit_path) in
+    GitTree.empty
+  )
+
+
 
 let add (file : string) : unit = try
     chdir ".git-ml";
