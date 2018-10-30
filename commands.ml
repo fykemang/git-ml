@@ -148,6 +148,7 @@ let commit
                             "Root Author <root@3110.org> " ^ "commit (inital) : " 
                             ^ message););
     GitTree.hash_file_subtree tree
+
 (** [tree_content_to_file_list pointer] is the file list of type 
     [string * string list] that is a list of filenames and file contents. 
     Mutually recurisve with [cat_file_to_git_object s] 
@@ -162,6 +163,15 @@ let cat_file_to_git_object (s:string) =
   | h::t when h = "Blob" -> Blob (List.fold_left (^) "" t )
   | h::t when h = "Tree_Object" -> Tree_Object (List.fold_left (^) "" t ) 
   | _ -> failwith "Unimplemented"
+
+let tag str = 
+  try 
+    let path = read_file (".git-ml/HEAD" |> open_in) in
+    let content = read_file (path |> open_in) in  
+    let oc = open_out (".git-ml/refs/tags" ^ str) in
+    output_string oc (content); close_out oc
+  with 
+  | Unix_error _ -> ()
 
 let add (file : string) : unit = try
     chdir ".git-ml";
@@ -178,4 +188,3 @@ let add (file : string) : unit = try
   | Unix_error (ENOENT, name, ".git-ml") -> 
     print_endline ("fatal: Not a git-ml repository" ^
                    " (or any of the parent directories): .git-ml");
-

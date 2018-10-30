@@ -127,4 +127,3 @@ let rec hash_file_subtree = function
                   ("Blob " ^ string_of_git_object (value (List.hd lst)))
     | _ -> raise (InvalidContentException "file_subtree can only have nodes
       with value of type Tree_object or File")
-

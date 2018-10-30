@@ -27,6 +27,8 @@ val ls_tree : string -> string
     [file] if it exists. *)
 val add : string -> unit
 
+val tag: string -> unit
+
 (** [commit message branch lst] commits the file_object list into the 
     .git-ml/objects hashtable and creates a commit in master/[branch]. **)
 val commit: string -> string -> file_object list -> unit

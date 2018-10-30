@@ -33,6 +33,12 @@ let cmd_list = [
     usage = "Add file to the staging area.";
     default = Parse.String (add);
     opts = []
+  };
+  {
+    name = "tag";
+    usage = "Add and get tags";
+    default = Parse.String (tag);
+    opts = []
   }
 ]
 
