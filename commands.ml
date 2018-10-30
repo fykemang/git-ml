@@ -25,8 +25,8 @@ let init () = begin
     print_endline (file ^ " already exists.");
 end
 
-(** [read_file file_chnl s] reads the [file_chnl] and outputs the content to [s],
-    it closes [file_chnl] after reaching the end of file. *)
+(** [read_file ?s file_chnl] reads the [file_chnl] and outputs the content to 
+    [s], it closes [file_chnl] after reaching the end of file. *)
 let rec read_file ?s:(s = "") file_chnl =
   try
     let cur_line = file_chnl |> input_line in
@@ -40,7 +40,7 @@ let rec read_dir handle s =
   try
     let cur_file = handle |> readdir in
     let hash = Util.hash_file cur_file in
-    if hash = s then read_file (open_in cur_file)
+    if hash = s then cur_file |> open_in |> read_file
     else read_dir handle s 
   with
   | End_of_file -> let _ = handle |> closedir in raise Not_found
@@ -50,8 +50,8 @@ let cat s =
   let fold_footer = String.sub s 2 (String.length s - 2) in(
     try(
       let ic = open_in (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
-      let content = (read_file ic) in
-      (print_endline content);
+      let content = read_file ic in
+      print_endline content;
     ) with e -> print_endline "Read Issue"
   ) 
 
@@ -76,11 +76,10 @@ let add_file_to_tree name content (tree : GitTree.t) =
     | [] -> tree
     | h::[] -> GitTree.add_file h content tree
     | subdir::t -> GitTree.add_child_tree 
-                     ((GitTree.get_subdirectory_tree (subdir) tree) |> 
-                      add_file_to_tree_helper t content) tree   
+                     ((GitTree.get_subdirectory_tree (subdir) tree) 
+                      |> add_file_to_tree_helper t content) tree   
   in
-  add_file_to_tree_helper 
-    (String.split_on_char '/' name) content tree 
+  add_file_to_tree_helper (String.split_on_char '/' name) content tree 
 
 (** [file_list_to_tree file_list] is the [GitTree] constructed from 
     [file_list]. *)
@@ -141,6 +140,7 @@ let add (file : string) : unit = try
     close_out index_out_ch;
     close_in file_in_ch;
   with
-  | Unix_error (e, name, param) -> print_endline name;
-    print_endline param;
+  | Unix_error (ENOENT, name, ".git-ml") -> 
+    print_endline ("fatal: Not a git-ml repository" ^
+                   " (or any of the parent directories): .git-ml");
 
