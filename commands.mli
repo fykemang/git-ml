@@ -27,8 +27,14 @@ val ls_tree : string -> string
     [file] if it exists. *)
 val add : string -> unit
 
+(** [tag] pretty prints all the tags that have been added, it prints nothing if
+    there are no tags assigned yet*)
 val tag : unit -> unit
 
+(** [tag_assign name] tags the current commit with string [name]. It hashes the 
+    current commit and stores the result in refs/tags/name. If the tag name 
+    already exists, then it raises an exception.
+    Requires: name cannot be "." or ".." *)
 val tag_assign: string -> unit
 
 (** [commit message branch lst] commits the file_object list into the 

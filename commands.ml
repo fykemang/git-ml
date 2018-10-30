@@ -190,14 +190,6 @@ let cat_file_to_git_object (s:string) =
   | h::t when h = "Tree_Object" -> Tree_Object (List.fold_left (^) "" t ) 
   | _ -> failwith "Unimplemented"
 
-(*let tag str = 
-  try 
-    let path = read_file (".git-ml/HEAD" |> open_in) in
-    let content = read_file (path |> open_in) in  
-    let oc = open_out (".git-ml/refs/tags" ^ str) in
-    output_string oc (content); close_out oc
-  with 
-  | Unix_error _ -> ()*)
 
 let tag () = 
   let handle = ".git-ml/refs/tags" |> opendir in
