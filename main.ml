@@ -36,10 +36,18 @@ let cmd_list = [
   };
   {
     name = "tag";
-    usage = "Add and get tags";
-    default = Parse.String (tag);
-    opts = []
+    usage = "Get tags";
+    default = Parse.Unit (tag);
+    opts = [
+      {
+        name = "-assign"; 
+        usage = "Stores hashed object in directory"; 
+        action = Parse.String (tag_assign)
+      }
+    ]
   }
+
+
 ]
 
 let main () = begin
