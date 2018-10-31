@@ -98,7 +98,12 @@ let hash_object_default file =
 
 let ls_tree s = failwith "Unimplemented"
 
-let log s = failwith "Unimplemented"
+let log branch = 
+  try
+    let log_string = read_file (open_in (".git-ml/logs/refs/heads/" ^ branch)) 
+    in
+    print_endline ("Git Log: \n" ^ log_string)
+  with e -> print_endline ("Error finding log file")
 
 (** [add_file_to_tree name content tree] adds the file with name [name] and 
     content [content] to tree [tree]. *)
@@ -166,6 +171,7 @@ let commit
                        (hash_str "root@3110.org") ^ "\n\n" ^ 
                        message in
   write_hash_contents commit_string commit_string;
+  print_endline ("[" ^ branch ^" " ^(hash_str commit_string) ^ "]");
   let oc = open_out (".git-ml/refs/heads/" ^ branch)  in 
   output_string oc (hash_str commit_string);
   let oc_HEAD = open_out (".git-ml/HEAD") in
@@ -331,8 +337,8 @@ let file_list_from_index () =
   let rec helper acc = function
     | [] -> acc
     | h::t when h = "" -> helper acc t
-    | h::t -> helper (((List.nth (String.split_on_char ' ' h) 1),
-                       ((cat_string (List.nth (String.split_on_char ' ' h) 2)) 
+    | h::t -> helper (((List.nth (String.split_on_char ' ' h) 0),
+                       ((cat_string (List.nth (String.split_on_char ' ' h) 1)) 
                         |> Util.remove_blob))::acc) t
   in
   try
@@ -340,7 +346,7 @@ let file_list_from_index () =
     let index_contents = read_file index_in in
     String.split_on_char '\n' index_contents |>
     helper []
-  with e -> raise e; failwith ".git-ml/index, try git-ml add or git-ml init"
+  with e -> failwith ".git-ml/index, try git-ml add or git-ml init"
 
 let commit_command message branch =
   try 
