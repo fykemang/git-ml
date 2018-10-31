@@ -45,6 +45,18 @@ let cmd_list = [
         action = Parse.String (tag_assign)
       }
     ]
+  };
+  {
+    name = "commit";
+    usage = "Commit the staged changes to the commit tree";
+    default = Parse.Unit (commit_command_default);
+    opts = [
+      {
+        name = "-m"; 
+        usage = "Commit message"; 
+        action = Parse.String (fun b -> commit_command b "master")
+      }
+    ]
   }
 
 

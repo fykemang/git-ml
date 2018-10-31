@@ -123,6 +123,14 @@ let file_list_to_tree (file_list : file_object list) =
       helper (add_file_to_tree file_name file_content acc) t
   in helper GitTree.empty_tree_object file_list
 
+let file_list_to_tree_non_empty (file_list : file_object list) (start_tree) =
+  let rec helper acc (lst : file_object list) = 
+    match lst with 
+    | [] -> acc
+    | (file_name,file_content)::t -> 
+      helper (add_file_to_tree file_name file_content acc) t
+  in helper start_tree file_list
+
 (** [hash_of_git_object obj] is the string hash of a given [git_object] obj *)
 let hash_of_git_object = function
   | Tree_Object s -> failwith "Invalid use of function, use hash_of_tree"
@@ -148,8 +156,9 @@ let last_commit_hash (ic_ref:in_channel) =
 let commit 
     (message:string) 
     (branch:string) 
-    (file_list:file_object list) : unit = 
-  let tree = file_list_to_tree file_list in
+    (file_list:file_object list) 
+    (start_tree:GitTree.t) : unit = 
+  let tree = file_list_to_tree_non_empty file_list start_tree in
   let commit_string =  "Tree_Object " ^ (GitTree.hash_of_tree (tree))
                        ^ "\n" ^ "author Root Author <root@3110.org> " ^
                        (hash_str "root@3110.org") ^ "\n" ^ 
@@ -166,7 +175,8 @@ let commit
     let last_hash = last_commit_hash in_ref in 
     let oc_ref = open_out_gen 
         [Open_append] 0o666 (".git-ml/logs/refs/heads/" ^ branch) in
-    output_string oc_ref ("\n" ^ last_hash ^ " " ^ (hash_str commit_string) ^ " " ^ 
+    output_string oc_ref ("\n" ^ last_hash ^ " " ^ (hash_str commit_string) 
+                          ^ " " ^ 
                           "Root Author <root@3110.org> " ^ "commit: " 
                           ^ message);
     GitTree.hash_file_subtree tree
@@ -174,7 +184,8 @@ let commit
       let last_hash = "00000000000000000000000000000000" in 
       let oc_ref = open_out (".git-ml/logs/refs/heads/" ^ branch) in
       output_string oc_ref (last_hash ^ " " ^ (hash_str commit_string) ^ " " ^ 
-                            "Root Author <root@3110.org> " ^ "commit (inital) : " 
+                            "Root Author <root@3110.org> " 
+                            ^ "commit (inital) : " 
                             ^ message);
       GitTree.hash_file_subtree tree)
 
@@ -315,3 +326,35 @@ let current_head_to_git_tree () =
       List.hd |> String.split_on_char ' ' |> List.tl |> List.hd |>
       tree_hash_to_git_tree ""
     with e -> raise e
+
+let file_list_from_index () =
+  let rec helper acc = function
+    | [] -> acc
+    | h::t when h = "" -> helper acc t
+    | h::t -> helper (((List.nth (String.split_on_char ' ' h) 1),
+                       ((cat_string (List.nth (String.split_on_char ' ' h) 2)) 
+                        |> Util.remove_blob))::acc) t
+  in
+  try
+    let index_in = open_in ".git-ml/index" in
+    let index_contents = read_file index_in in
+    String.split_on_char '\n' index_contents |>
+    helper []
+  with e -> raise e; failwith ".git-ml/index, try git-ml add or git-ml init"
+
+let commit_command message branch =
+  try 
+    let commit_path = input_line (open_in ".git-ml/HEAD") in
+    if not (Sys.file_exists (".git-ml/" ^ commit_path))
+    then
+      commit message branch 
+        (file_list_from_index ()) GitTree.empty_tree_object
+    else 
+      commit message branch 
+        (file_list_from_index ()) (current_head_to_git_tree ())
+  with e ->
+    commit message branch 
+      (file_list_from_index ()) GitTree.empty_tree_object
+
+let commit_command_default () = 
+  commit_command "no commit message provided" "master" 

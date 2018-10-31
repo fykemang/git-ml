@@ -12,10 +12,11 @@ let lst =
   ("dummy.txt", "some text")::[]
 let lst_ = 
   ("super/sub/hello.txt", "hello world")::[]
-let a b = Commands.commit ("fifth message") ("master") lst
+let ()= Commands.commit ("sixth message") ("master") lst 
+    GitTree.empty_tree_object
 let () = 
   (Commands.file_list_to_tree lst) |> GitTree.pp_git_tree "" |> 
   print_endline
 let () = print_endline "Printing Tree from File Structure:"
-let () = (Commands.current_head_to_git_tree ()) |> GitTree.pp_git_tree "" |> 
-         print_endline
+let a b = (Commands.current_head_to_git_tree ()) |> GitTree.pp_git_tree "" |> 
+          print_endline

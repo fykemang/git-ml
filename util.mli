@@ -9,3 +9,6 @@ val hash_str : string -> string
 
 (** [print_hash s] outputs the hash of a string to stdout *)
 val print_hash_str : string -> unit
+
+(** [remove_blob s] is the string with the Blob header removed from s*)
+val remove_blob: string -> string
