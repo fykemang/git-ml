@@ -43,6 +43,16 @@ val tag_assign: string -> unit
 
 (** [commit message branch lst] commits the file_object list into the 
     .git-ml/objects hashtable and creates a commit in master/[branch] **)
-val commit: string -> string -> file_object list -> unit
+val commit: string -> string -> file_object list -> GitTree.t -> unit
 
+(** [current_head_to_git_Tree ()] gives the GitTree represented by the current 
+    head **)
 val current_head_to_git_tree: unit -> GitTree.t
+
+(** [commit_command message branch] commits the staging area with 
+    message [message] on branch [branch] *)
+val commit_command: string -> string -> unit
+
+(** [commit_command message branch] commits the staging area with 
+    message ["no commit message"] on branch ["branch"] *)
+val commit_command_default: unit -> unit
