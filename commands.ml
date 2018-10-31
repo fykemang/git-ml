@@ -249,11 +249,12 @@ let rec add_dir_files (address : string) : unit =
 let add (address : string) : unit = 
   try
     if Sys.is_directory ".git-ml" 
-    then begin 
-      if Sys.is_directory address 
-      then add_dir_files address
-      else add_file address 
-    end
+    then 
+      begin
+        if Sys.is_directory address 
+        then add_dir_files address
+        else add_file address
+      end
   with
   | Unix_error (ENOENT, name, ".git-ml") ->
     print_endline ("fatal: Not a git-ml repository" ^
