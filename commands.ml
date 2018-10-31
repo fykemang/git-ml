@@ -229,7 +229,7 @@ let add_file (file : string) : unit =
     where it exists
     Requires: The current directory is a child folder of the directory
               where ".git-ml" exists *)
-let rec to_base_dir () : unit = 
+let rec to_base_dir () : unit =
   try ignore (Sys.is_directory ".git-ml") with 
     Sys_error s -> chdir "../"; to_base_dir ()
 
@@ -259,13 +259,14 @@ let add (address : string) : unit =
       if Sys.is_directory address 
       then add_dir_files address
       else add_file address 
-    end 
+    end
   with
-  | Unix_error (ENOENT, name, ".git-ml") | Sys_error name -> 
+  | Unix_error (ENOENT, name, ".git-ml") ->
     print_endline ("fatal: Not a git-ml repository" ^
                    " (or any of the parent directories): .git-ml")
+  | Sys_error msg -> print_endline msg
 
-let tag () = 
+let tag () =
   let handle = ".git-ml/refs/tags" |> opendir in
   let string_to_print = read_dir_filenames handle "" in
   print_endline string_to_print
