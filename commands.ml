@@ -206,6 +206,11 @@ let add_file (file : string) : unit =
   close_out index_out_ch;
   close_in file_in_ch
 
+(** [to_base_dir base] checks if the current directory has ".git-ml",
+    if it does not then recurse through the file system back to the directory
+    where it exists
+    Requires: The base directory is a parent folder of the current directory
+    [getcwd ()] *)
 let rec to_base_dir base = try ignore (Sys.is_directory ".git-ml") with 
     Sys_error s -> chdir "../"; to_base_dir (getcwd ()) 
 
@@ -248,18 +253,19 @@ let tag () =
 
 let tag_assign str = 
   let commit_path = input_line (open_in ".git-ml/HEAD") in
-  if (not (Sys.file_exists (".git-ml/" ^ commit_path))) 
+  if not (Sys.file_exists (".git-ml/" ^ commit_path))
   then raise (FileNotFound ("No such file: " ^ commit_path))
-  else (
+  else
     let commit_hash = input_line (open_in (".git-ml/" ^ commit_path)) in 
-    try 
-      if (Sys.file_exists (".git-ml/refs/tags/" ^ str)) then 
-        failwith "tag already exists" else
+    try
+      if Sys.file_exists (".git-ml/refs/tags/" ^ str) 
+      then failwith "tag already exists" 
+      else
         let oc = open_out (".git-ml/refs/tags/" ^ str) in
-        output_string oc (commit_hash); close_out oc
-    with 
+        output_string oc commit_hash;
+        close_out oc
+    with
     | Unix_error _ -> ()
-  )
 
 (** [tree_hash_to_git_tree hash_adr] is the GitTree.t of the Tree_Object at
     hash_adr. 
@@ -274,10 +280,10 @@ let rec tree_hash_to_git_tree name hash_adr =
       | h::t when h = "Tree_Object" -> 
         helper tail ((tree_hash_to_git_tree (List.nth t 1) (List.nth t 0))::acc)
       | h::t when h = "File" -> 
-        helper tail ((Node ((File (List.nth t 1)), 
-                            ((helper ((cat_string (List.nth t 0)) 
-                                      |> (String.split_on_char '\n')) []
-                             ))))::acc)
+        helper tail (Node ((File (List.nth t 1)), 
+                           ((helper ((cat_string (List.nth t 0)) 
+                                     |> (String.split_on_char '\n')) []
+                            )))::acc)
       | h::t when h = "Blob" -> 
         Node ((Blob 
                  (let s = List.fold_left (fun a b -> a ^ " " ^ b) "" t in  
@@ -297,13 +303,11 @@ let rec tree_hash_to_git_tree name hash_adr =
 
 let current_head_to_git_tree () =
   let commit_path = input_line (open_in ".git-ml/HEAD") in
-  if (not (Sys.file_exists (".git-ml/" ^ commit_path)))
+  if not (Sys.file_exists (".git-ml/" ^ commit_path))
   then raise (FileNotFound ("No such file: " ^ (".git-ml/" ^ commit_path)))
-  else (
-    try 
+  else try
       let commit_hash = input_line (open_in (".git-ml/" ^ commit_path)) in
       cat_string commit_hash |> String.split_on_char '\n' |>
       List.hd |> String.split_on_char ' ' |> List.tl |> List.hd |>
       tree_hash_to_git_tree ""
     with e -> raise e
-  )
