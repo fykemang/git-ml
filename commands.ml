@@ -204,7 +204,7 @@ let tree_content_to_file_list (pointer:string) =
   failwith "Unimplemented"
 
 (** This may not be at all useful. *)
-let cat_file_to_git_object (s:string) =
+let cat_file_to_git_object (s : string) =
   match String.split_on_char ' ' s with
   | h::t when h = "Blob" -> Blob (List.fold_left (^) "" t )
   | h::t when h = "Tree_Object" -> Tree_Object (List.fold_left (^) "" t ) 
@@ -250,7 +250,6 @@ let rec add_dir_files (address : string) : unit =
         if is_dir then add_dir_files path else add_file path;
         parse_dir dir;
     with End_of_file -> closedir dir; in address |> opendir |> parse_dir
-
 
 let add (address : string) : unit = 
   try
