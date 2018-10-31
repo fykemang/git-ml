@@ -260,7 +260,7 @@ let add (address : string) : unit =
                    " (or any of the parent directories): .git-ml")
   | Sys_error msg -> print_endline msg
 
-let tag () = 
+let tag () =
   let handle = ".git-ml/refs/tags" |> opendir in
   let string_to_print = read_dir_filenames handle "" in
   print_endline string_to_print
