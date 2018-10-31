@@ -98,7 +98,12 @@ let hash_object_default file =
 
 let ls_tree s = failwith "Unimplemented"
 
-let log s = failwith "Unimplemented"
+let log branch = 
+  try
+    let log_string = read_file (open_in (".git-ml/logs/refs/heads/" ^ branch)) 
+    in
+    print_endline ("Git Log: \n" ^ log_string)
+  with e -> print_endline ("Error finding log file")
 
 (** [add_file_to_tree name content tree] adds the file with name [name] and 
     content [content] to tree [tree]. *)
@@ -166,6 +171,7 @@ let commit
                        (hash_str "root@3110.org") ^ "\n\n" ^ 
                        message in
   write_hash_contents commit_string commit_string;
+  print_endline ("[" ^ branch ^" " ^(hash_str commit_string) ^ "]");
   let oc = open_out (".git-ml/refs/heads/" ^ branch)  in 
   output_string oc (hash_str commit_string);
   let oc_HEAD = open_out (".git-ml/HEAD") in
