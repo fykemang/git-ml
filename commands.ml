@@ -193,6 +193,8 @@ let cat_file_to_git_object (s:string) =
   | h::t when h = "Tree_Object" -> Tree_Object (List.fold_left (^) "" t ) 
   | _ -> failwith "Unimplemented"
 
+(** [add_file file] writes the hash, name, and time-stamp of the file [file]  
+    to .git-ml/index and stores the file content in .git-ml/objects *)
 let add_file (file : string) : unit =
   chdir ".git-ml";
   let index_out_ch = open_out_gen [Open_creat; Open_append] 0o700 "index" in
@@ -211,11 +213,13 @@ let add_file (file : string) : unit =
     where it exists
     Requires: The base directory is a parent folder of the current directory
     [getcwd ()] *)
-let rec to_base_dir base = try ignore (Sys.is_directory ".git-ml") with 
+let rec to_base_dir (base : string) : unit = 
+  try ignore (Sys.is_directory ".git-ml") with 
     Sys_error s -> chdir "../"; to_base_dir (getcwd ()) 
 
-(** [hash_dir_files address] is a list of filenames and their respective
-    hashes *)
+(** [hash_dir_files address] takes the address [address] to a directory
+    and hashes each file and directory within and writes it to .git-ml/objects
+    and .git-ml/index using [add_file] *)
 let rec add_dir_files (address : string) : unit =
   let rec parse_dir dir = 
     try
@@ -230,8 +234,8 @@ let rec add_dir_files (address : string) : unit =
         to_base_dir base;
         if is_dir then add_dir_files path else add_file path;
         parse_dir dir;
-    with End_of_file -> closedir dir; in
-  address |> opendir |> parse_dir
+    with End_of_file -> closedir dir; in address |> opendir |> parse_dir
+
 
 let add (address : string) : unit = 
   try
