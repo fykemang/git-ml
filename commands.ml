@@ -340,7 +340,7 @@ let file_list_from_index () =
     let index_contents = read_file index_in in
     String.split_on_char '\n' index_contents |>
     helper []
-  with e -> raise e; failwith ".git-ml/index, try git-ml add or git-ml init"
+  with e -> failwith ".git-ml/index, try git-ml add or git-ml init"
 
 let commit_command message branch =
   try 
