@@ -57,6 +57,18 @@ let cmd_list = [
         action = Parse.String (fun b -> commit_command b "master")
       }
     ]
+  };
+  {
+    name = "log";
+    usage = "Get the ref log of the commits";
+    default = Parse.Unit (fun () -> (log "master"));
+    opts = [
+      {
+        name = "-b"; 
+        usage = "Get the reflog with on the branch -b [branch]"; 
+        action = Parse.String (log)
+      }
+    ]
   }
 
 
