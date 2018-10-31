@@ -335,8 +335,8 @@ let file_list_from_index () =
   let rec helper acc = function
     | [] -> acc
     | h::t when h = "" -> helper acc t
-    | h::t -> helper (((List.nth (String.split_on_char ' ' h) 1),
-                       ((cat_string (List.nth (String.split_on_char ' ' h) 2)) 
+    | h::t -> helper (((List.nth (String.split_on_char ' ' h) 0),
+                       ((cat_string (List.nth (String.split_on_char ' ' h) 1)) 
                         |> Util.remove_blob))::acc) t
   in
   try
