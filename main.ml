@@ -33,7 +33,21 @@ let cmd_list = [
     usage = "Add file to the staging area.";
     default = Parse.String (add);
     opts = []
+  };
+  {
+    name = "tag";
+    usage = "Get tags";
+    default = Parse.Unit (tag);
+    opts = [
+      {
+        name = "-assign"; 
+        usage = "Stores hashed object in directory"; 
+        action = Parse.String (tag_assign)
+      }
+    ]
   }
+
+
 ]
 
 let main () = begin

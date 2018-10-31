@@ -6,12 +6,14 @@ type filename = string
 type file_content = string
 type file_object = filename * file_content
 
+
+exception FileNotFound of string 
 let init () = begin
   try
     let curr_dir = Unix.getcwd () in
     mkdir ".git-ml" 0o700;
     chdir ".git-ml";
-    openfile "HEAD" [O_WRONLY; O_CREAT] 0o666;
+    ignore (openfile "HEAD" [O_WRONLY; O_CREAT] 0o666);
     mkdir "objects" 0o700;
     mkdir "info" 0o700;
     mkdir "refs" 0o700;
@@ -50,6 +52,16 @@ let rec read_dir handle s =
   with
   | End_of_file -> let _ = handle |> closedir in raise Not_found
 
+(** [read_dir handle s] reads the directory [dir] and outputs the filenames to
+    [s], it closes [handle] after reaching the end of file. *)
+let rec read_dir_filenames handle s =
+  try
+    let cur_file = handle |> readdir in
+    if cur_file="." || cur_file=".." then read_dir_filenames handle s else
+      read_dir_filenames handle (s^cur_file^"\n")
+  with
+  | End_of_file -> let _ = handle |> closedir in s
+
 let cat s = 
   let fold_header = String.sub s 0 2  in
   let fold_footer = String.sub s 2 (String.length s - 2) in(
@@ -59,6 +71,18 @@ let cat s =
       print_endline content;
     ) with e -> print_endline "Read Issue"
   ) 
+
+(** [cat_string s] is the content of the file at hash_adr s*)
+let cat_string s = 
+  let fold_header = String.sub s 0 2  in
+  let fold_footer = String.sub s 2 (String.length s - 2) in(
+    try(
+      let ic = open_in (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
+      let content = read_file ic in
+      content;
+    ) with e -> raise (FileNotFound 
+                         ("file not found: " ^ fold_header ^ "/" ^ fold_footer))
+  )
 
 let hash_object file =
   let content = read_file (file |> open_in) in
@@ -132,6 +156,8 @@ let commit
   write_hash_contents commit_string commit_string;
   let oc = open_out (".git-ml/refs/heads/" ^ branch)  in 
   output_string oc (hash_str commit_string);
+  let oc_HEAD = open_out (".git-ml/HEAD") in
+  output_string oc_HEAD ("refs/heads/" ^ branch);
   try 
     let in_ref = open_in (".git-ml/logs/refs/heads/" ^ branch) in  
     let last_hash = last_commit_hash in_ref in 
@@ -148,6 +174,7 @@ let commit
                             "Root Author <root@3110.org> " ^ "commit (inital) : " 
                             ^ message););
     GitTree.hash_file_subtree tree
+
 (** [tree_content_to_file_list pointer] is the file list of type 
     [string * string list] that is a list of filenames and file contents. 
     Mutually recurisve with [cat_file_to_git_object s] 
@@ -176,7 +203,7 @@ let add_file (file : string) : unit =
   close_out index_out_ch;
   close_in file_in_ch
 
-let rec to_base_dir base = try Sys.is_directory ".git-ml"; with 
+let rec to_base_dir base = try ignore (Sys.is_directory ".git-ml") with 
     Sys_error s -> chdir "../"; to_base_dir (getcwd ()) 
 
 (** [hash_dir_files address] is a list of filenames and their respective
@@ -205,8 +232,51 @@ let add (address : string) : unit =
       if Sys.is_directory address 
       then add_dir_files address
       else add_file address 
-    end
+    end 
   with
   | Unix_error (ENOENT, name, ".git-ml") | Sys_error name -> 
     print_endline ("fatal: Not a git-ml repository" ^
                    " (or any of the parent directories): .git-ml")
+
+let tag () = 
+  let handle = ".git-ml/refs/tags" |> opendir in
+  let string_to_print = read_dir_filenames handle "" in
+  print_endline string_to_print
+
+let tag_assign str = 
+  let commit_path = input_line (open_in ".git-ml/HEAD") in
+  if (not (Sys.file_exists (".git-ml/" ^ commit_path))) 
+  then raise (FileNotFound ("No such file: " ^ commit_path))
+  else (
+    let commit_hash = input_line (open_in (".git-ml/" ^ commit_path)) in 
+    try 
+      if (Sys.file_exists (".git-ml/refs/tags/" ^ str)) then 
+        failwith "tag already exists" else
+        let oc = open_out (".git-ml/refs/tags/" ^ str) in
+        output_string oc (commit_hash); close_out oc
+    with 
+    | Unix_error _ -> ()
+  )
+
+(** [tree_hash_to_git_tree hash_adr] is the GitTree.t of the Tree_Object at
+    hash_adr. 
+    Requires: [hash_adr] is a valid hash adress to a Tree_Object*)
+let rec tree_hash_to_git_tree hash_adr =
+  let rec helper (lst:string list) acc =
+    match lst with 
+    | [] -> ()
+    | h::t -> failwith "unimplemented"
+  in
+  cat_string hash_adr |>
+  String.split_on_char '\n' |> failwith "unimplemnetd"
+
+let current_head_to_git_tree s =
+  let commit_path = input_line (open_in ".git-ml/HEAD") in
+  if (not (Sys.file_exists commit_path)) 
+  then raise (FileNotFound ("No such file: " ^ commit_path))
+  else (
+    let commit_hash = input_line (open_in commit_path) in
+    cat_string commit_hash |> String.split_on_char '\n' |>
+    List.hd |> String.split_on_char ' ' |> List.tl |> List.hd |>
+    failwith "unimplmeneted"
+  )
