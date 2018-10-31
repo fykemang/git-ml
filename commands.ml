@@ -79,7 +79,7 @@ let add_file_to_tree name content (tree : GitTree.t) =
   let rec add_file_to_tree_helper name_lst content (tree : GitTree.t) = 
     match name_lst with 
     | [] -> tree
-    | h::[] -> GitTree.add_file h content tree
+    | h::[] -> GitTree.add_file_to_tree h content tree
     | subdir::t -> GitTree.add_child_tree 
                      ((GitTree.get_subdirectory_tree (subdir) tree) 
                       |> add_file_to_tree_helper t content) tree   
@@ -163,19 +163,50 @@ let cat_file_to_git_object (s:string) =
   | h::t when h = "Tree_Object" -> Tree_Object (List.fold_left (^) "" t ) 
   | _ -> failwith "Unimplemented"
 
-let add (file : string) : unit = try
-    chdir ".git-ml";
-    let index_out_ch = open_out_gen [Open_creat; Open_append] 0o700 "index" in
-    chdir "../";
-    let file_in_ch = file |> open_in in
-    let file_content = "Blob " ^ (read_file file_in_ch) in
-    let file_content_hash = Util.hash_str file_content in
-    write_hash_contents file_content file_content;
-    Printf.fprintf index_out_ch "%s %s\n" file file_content_hash;
-    close_out index_out_ch;
-    close_in file_in_ch;
-  with
-  | Unix_error (ENOENT, name, ".git-ml") -> 
-    print_endline ("fatal: Not a git-ml repository" ^
-                   " (or any of the parent directories): .git-ml");
+let add_file (file : string) : unit =
+  chdir ".git-ml";
+  let index_out_ch = open_out_gen [Open_creat; Open_append] 0o700 "index" in
+  chdir "../";
+  let file_in_ch = file |> open_in in
+  let file_content = read_file file_in_ch in
+  let file_content_hash = Util.hash_str ("Blob " ^ file_content) in
+  add_file_to_tree file file_content empty |> hash_file_subtree;
+  Printf.fprintf index_out_ch "%f %s %s\n"
+    (Unix.gettimeofday ()) file file_content_hash;
+  close_out index_out_ch;
+  close_in file_in_ch
 
+let rec to_base_dir base = try Sys.is_directory ".git-ml"; with 
+    Sys_error s -> chdir "../"; to_base_dir (getcwd ()) 
+
+(** [hash_dir_files address] is a list of filenames and their respective
+    hashes *)
+let rec add_dir_files (address : string) : unit =
+  let rec parse_dir dir = 
+    try
+      let n = readdir dir in
+      if Filename.check_suffix n "." || Filename.check_suffix n ".git-ml" 
+      then parse_dir dir
+      else
+        let path = address ^ Filename.dir_sep ^ n in
+        let base = getcwd () in
+        chdir address;
+        let is_dir = Sys.is_directory n in
+        to_base_dir base;
+        if is_dir then add_dir_files path else add_file path;
+        parse_dir dir;
+    with End_of_file -> closedir dir; in
+  address |> opendir |> parse_dir
+
+let add (address : string) : unit = 
+  try
+    if Sys.is_directory ".git-ml" 
+    then begin 
+      if Sys.is_directory address 
+      then add_dir_files address
+      else add_file address 
+    end
+  with
+  | Unix_error (ENOENT, name, ".git-ml") | Sys_error name -> 
+    print_endline ("fatal: Not a git-ml repository" ^
+                   " (or any of the parent directories): .git-ml")

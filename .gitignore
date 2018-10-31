@@ -13,6 +13,7 @@ doc.private
 _build
 
 # temporary files
+.zip
 *.swp
 *~
 \#*\#

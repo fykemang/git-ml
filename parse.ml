@@ -1,3 +1,4 @@
+(* To DO: Rewrite the args array as a stream *)
 type spec = 
   | String of (string -> unit)
   | Unit of (unit -> unit)

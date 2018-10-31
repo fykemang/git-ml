@@ -58,12 +58,10 @@ let add_child_tree (subtree:t) = function
   | Leaf -> subtree
   | Node(o,lst) -> Node(o,(add_subtree_to_list subtree lst))
 
-let add_file (filename:string) (file_content:string) = function
-  | Leaf -> 
-    add_child_tree (Node ((File filename), 
-                          (Node ((Blob file_content),[])::[]))) 
-      empty 
-  | Node (o,lst) -> add_child_tree 
+let add_file_to_tree (filename:string) (file_content:string) = function
+  | Leaf -> add_child_tree (Node ((File filename), 
+                                  (Node ((Blob file_content),[])::[]))) empty 
+  | Node (o, lst) -> add_child_tree
                       (Node ((File filename), 
                              (Node ((Blob file_content),[])::[]))) 
                       (Node (o,lst))
@@ -108,13 +106,14 @@ let write_hash_contents (unhashed_adr:string) (file_content:string) =
   let hash_addr = hash_str unhashed_adr in
   let fold_header = String.sub hash_addr 0 2  in
   let fold_footer = String.sub hash_addr 2 (String.length hash_addr - 2) in
-  try 
+  try
     mkdir (".git-ml/objects/" ^ fold_header) 0o700;
     let oc = open_out (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
     output_string oc (file_content);
     close_out oc
-  with 
+  with
   | Unix_error _ -> ()
+    
 
 let rec hash_file_subtree = function
   | Leaf -> ()
