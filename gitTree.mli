@@ -35,7 +35,7 @@ val add_child_tree: t -> t -> t
 
 (** [add_file filename content tree] is the [GitTree.t] with the [filename] with
     content [content] added to the root node of tree. **)
-val add_file: string -> string -> t -> t
+val add_file_to_tree: string -> string -> t -> t
 
 (** [get_subdirectory subdirectory tree] is the [GitTree.t] corresponding to 
     the subdirectory subdirectory in [tree] if there is such a subdirectory in 
@@ -72,3 +72,6 @@ val hash_of_tree: t -> string
 (** [string_of_git_object] is the string associated with a certain git object 
     [string_of_git_object (File "test.txt")] would evaluate to ["test.txt"]. *)
 val string_of_git_object: git_object -> string
+
+(** [pp_git_tree "" tree] is the pretty printed string of tree t *)
+val pp_git_tree: string -> t -> string
