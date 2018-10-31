@@ -6,5 +6,12 @@ let hash_str s = s |> Digest.string |> Digest.to_hex
 
 let print_hash_str s = print_endline (hash_str s)
 
+let remove_blob s =
+  match String.split_on_char ' ' s with
+  | h::t when h = "Blob" -> (List.fold_left (^) "" t ) 
+  | h::t -> failwith "Trying to remove_blob on string containing no Blob header"
+  | [] -> s 
+
+
 
 
