@@ -106,14 +106,15 @@ let write_hash_contents (unhashed_adr:string) (file_content:string) =
   let hash_addr = hash_str unhashed_adr in
   let fold_header = String.sub hash_addr 0 2  in
   let fold_footer = String.sub hash_addr 2 (String.length hash_addr - 2) in
-  try
-    mkdir (".git-ml/objects/" ^ fold_header) 0o700;
+  let write_to_objects () = 
     let oc = open_out (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
     output_string oc (file_content);
-    close_out oc
-  with
-  | Unix_error _ -> ()
-    
+    close_out oc in
+  try
+    mkdir (".git-ml/objects/" ^ fold_header) 0o700;
+    write_to_objects ();
+  with 
+  | Unix_error _ -> write_to_objects ()
 
 let rec hash_file_subtree = function
   | Leaf -> ()
@@ -126,3 +127,22 @@ let rec hash_file_subtree = function
                   ("Blob " ^ string_of_git_object (value (List.hd lst)))
     | _ -> raise (InvalidContentException "file_subtree can only have nodes
       with value of type Tree_object or File")
+
+let rec pp_git_tree (acc:string) (tree:t) = 
+  let rec pp_git_tree_children acc = function
+    | [] -> acc
+    | Leaf::t -> failwith "There should be no leaves in GitTree"
+    | Node (o, lst)::t -> pp_git_tree_children (acc ^ 
+                                                pp_git_tree "" (Node(o,lst))) t
+  in 
+  match tree with
+  | Leaf -> ""
+  | Node (o,lst) -> match o with 
+    |Tree_Object s -> acc ^ (tree_children_content lst) ^ "\n" ^
+                      (pp_git_tree_children "" lst)
+    |File s -> acc ^ "File " ^ s ^ "\n" ^ (pp_git_tree_children "" lst)
+    |Blob s -> acc ^ "Blob " ^ s ^ "\n" ^ (pp_git_tree_children "" lst)
+    |_ -> acc ^ "pretty printing not supported for this node" ^ 
+          (pp_git_tree_children "" lst)
+
+

@@ -72,3 +72,6 @@ val hash_of_tree: t -> string
 (** [string_of_git_object] is the string associated with a certain git object 
     [string_of_git_object (File "test.txt")] would evaluate to ["test.txt"]. *)
 val string_of_git_object: git_object -> string
+
+(** [pp_git_tree "" tree] is the pretty printed string of tree t *)
+val pp_git_tree: string -> t -> string

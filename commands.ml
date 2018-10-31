@@ -78,8 +78,11 @@ let cat_string s =
   let fold_footer = String.sub s 2 (String.length s - 2) in(
     try(
       let ic = open_in (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
-      let content = read_file ic in
-      content;
+      try (let content = read_file ic in
+           content;) with e -> (
+          failwith 
+            ("cat_string read error on" ^ 
+             ".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer))
     ) with e -> raise (FileNotFound 
                          ("file not found: " ^ fold_header ^ "/" ^ fold_footer))
   )
@@ -172,8 +175,8 @@ let commit
       let oc_ref = open_out (".git-ml/logs/refs/heads/" ^ branch) in
       output_string oc_ref (last_hash ^ " " ^ (hash_str commit_string) ^ " " ^ 
                             "Root Author <root@3110.org> " ^ "commit (inital) : " 
-                            ^ message););
-    GitTree.hash_file_subtree tree
+                            ^ message);
+      GitTree.hash_file_subtree tree)
 
 (** [tree_content_to_file_list pointer] is the file list of type 
     [string * string list] that is a list of filenames and file contents. 
@@ -260,23 +263,47 @@ let tag_assign str =
 
 (** [tree_hash_to_git_tree hash_adr] is the GitTree.t of the Tree_Object at
     hash_adr. 
-    Requires: [hash_adr] is a valid hash adress to a Tree_Object*)
-let rec tree_hash_to_git_tree hash_adr =
-  let rec helper (lst:string list) acc =
+    Requires: [hash_adr] is a valid hash adress to a Tree_Object *)
+let rec tree_hash_to_git_tree name hash_adr =
+  let rec helper (lst:string list) acc : GitTree.t list =
     match lst with 
-    | [] -> ()
-    | h::t -> failwith "unimplemented"
+    | [] -> acc
+    | h::tail -> match String.split_on_char ' ' h with 
+      | [] -> failwith "Error, helper operating on empty string"
+      | h::t when h = "" -> helper tail acc 
+      | h::t when h = "Tree_Object" -> 
+        helper tail ((tree_hash_to_git_tree (List.nth t 1) (List.nth t 0))::acc)
+      | h::t when h = "File" -> 
+        helper tail ((Node ((File (List.nth t 1)), 
+                            ((helper ((cat_string (List.nth t 0)) 
+                                      |> (String.split_on_char '\n')) []
+                             ))))::acc)
+      | h::t when h = "Blob" -> 
+        Node ((Blob 
+                 (let s = List.fold_left (fun a b -> a ^ " " ^ b) "" t in  
+                  String.sub s 1 (String.length s - 1)))
+             ,[])::acc
+      | h::t -> failwith 
+                  ("helper only operates on Tree_Object, File or Blob," ^
+                   "attempting to operate on:" ^ h ^ 
+                   "| with rest of string:" ^ 
+                   (List.fold_left (fun a b -> a ^ " " ^ b) "" t))
   in
-  cat_string hash_adr |>
-  String.split_on_char '\n' |> failwith "unimplemnetd"
+  let spl = (
+    cat_string hash_adr |>
+    String.split_on_char '\n') in
+  let children = helper spl [] in Node (Tree_Object name, children)
 
-let current_head_to_git_tree s =
+
+let current_head_to_git_tree () =
   let commit_path = input_line (open_in ".git-ml/HEAD") in
-  if (not (Sys.file_exists commit_path)) 
-  then raise (FileNotFound ("No such file: " ^ commit_path))
+  if (not (Sys.file_exists (".git-ml/" ^ commit_path)))
+  then raise (FileNotFound ("No such file: " ^ (".git-ml/" ^ commit_path)))
   else (
-    let commit_hash = input_line (open_in commit_path) in
-    cat_string commit_hash |> String.split_on_char '\n' |>
-    List.hd |> String.split_on_char ' ' |> List.tl |> List.hd |>
-    failwith "unimplmeneted"
+    try 
+      let commit_hash = input_line (open_in (".git-ml/" ^ commit_path)) in
+      cat_string commit_hash |> String.split_on_char '\n' |>
+      List.hd |> String.split_on_char ' ' |> List.tl |> List.hd |>
+      tree_hash_to_git_tree ""
+    with e -> raise e
   )
