@@ -74,4 +74,4 @@ val hash_of_tree: t -> string
 val string_of_git_object: git_object -> string
 
 (** [pp_git_tree "" tree] is the pretty printed string of tree t *)
-val pp_git_tree: string -> t -> t
+val pp_git_tree: string -> t -> string

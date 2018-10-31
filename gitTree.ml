@@ -114,7 +114,10 @@ let write_hash_contents (unhashed_adr:string) (file_content:string) =
     output_string oc (file_content);
     close_out oc
   with 
-  | Unix_error _ -> ()
+  | Unix_error _ -> 
+    let oc = open_out (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
+    output_string oc (file_content);
+    close_out oc
 
 let rec hash_file_subtree = function
   | Leaf -> ()
@@ -127,8 +130,6 @@ let rec hash_file_subtree = function
                   ("Blob " ^ string_of_git_object (value (List.hd lst)))
     | _ -> raise (InvalidContentException "file_subtree can only have nodes
       with value of type Tree_object or File")
-
-
 
 let rec pp_git_tree (acc:string) (tree:t) = 
   let rec pp_git_tree_children acc = function

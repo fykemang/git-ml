@@ -10,8 +10,12 @@ let lst =
   ("dir/test2.html","test1")::
   ("superdirectory/subdirectory/file.txt", "10/24/2018")::
   ("dummy.txt", "some text")::[]
-let lst = 
+let lst_ = 
   ("super/sub/hello.txt", "hello world")::[]
-let () = Commands.commit ("fifth message") ("master") lst
+let a b = Commands.commit ("fifth message") ("master") lst
 let () = 
-  (Commands.file_list_to_tree lst) |> GitTree.pp_git_tree |> print_endline)
+  (Commands.file_list_to_tree lst) |> GitTree.pp_git_tree "" |> 
+  print_endline
+let () = print_endline "Printing Tree from File Structure:"
+let () = (Commands.current_head_to_git_tree ()) |> GitTree.pp_git_tree "" |> 
+         print_endline
