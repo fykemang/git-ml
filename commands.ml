@@ -220,19 +220,18 @@ let add_file (file : string) : unit =
   let file_content = read_file file_in_ch in
   let file_content_hash = Util.hash_str ("Blob " ^ file_content) in
   add_file_to_tree file file_content empty |> hash_file_subtree;
-  Printf.fprintf index_out_ch "%f %s %s\n"
-    (Unix.gettimeofday ()) file file_content_hash;
+  Printf.fprintf index_out_ch "%s %s\n" file file_content_hash;
   close_out index_out_ch;
   close_in file_in_ch
 
 (** [to_base_dir base] checks if the current directory has ".git-ml",
     if it does not then recurse through the file system back to the directory
     where it exists
-    Requires: The base directory is a parent folder of the current directory
-    [getcwd ()] *)
-let rec to_base_dir (base : string) : unit = 
+    Requires: The current directory is a child folder of the directory
+              where ".git-ml" exists *)
+let rec to_base_dir () : unit = 
   try ignore (Sys.is_directory ".git-ml") with 
-    Sys_error s -> chdir "../"; to_base_dir (getcwd ()) 
+    Sys_error s -> chdir "../"; to_base_dir ()
 
 (** [hash_dir_files address] takes the address [address] to a directory
     and hashes each file and directory within and writes it to .git-ml/objects
@@ -245,10 +244,9 @@ let rec add_dir_files (address : string) : unit =
       then parse_dir dir
       else
         let path = address ^ Filename.dir_sep ^ n in
-        let base = getcwd () in
         chdir address;
         let is_dir = Sys.is_directory n in
-        to_base_dir base;
+        to_base_dir ();
         if is_dir then add_dir_files path else add_file path;
         parse_dir dir;
     with End_of_file -> closedir dir; in address |> opendir |> parse_dir
