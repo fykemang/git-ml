@@ -208,13 +208,15 @@ let cat_file_to_git_object (s : string) =
   | h::t when h = "Tree_Object" -> Tree_Object (List.fold_left (^) "" t ) 
   | _ -> failwith "Unimplemented"
 
-
-let add_file ?idx:(idx = StrMap.empty) (file : string) = 
+(** [add_file ?idx file] adds file to ".git-ml/objects/" and is a 
+    map with a mapping of [file] to a hash of the file contents *)
+let add_file ?idx:(idx = StrMap.empty) (file : string) : StrMap.key StrMap.t = 
   let file_in_ch = file |> open_in in
   let file_content = read_file file_in_ch in
   let file_content_hash = Util.hash_str ("Blob " ^ file_content) in
-  let file_name = if Str.first_chars file 2 = "./" then Str.string_after file 2 
-  else file in
+  let file_name = if Str.first_chars file 2 = "./" 
+    then Str.string_after file 2 
+    else file in
   add_file_to_tree file_name file_content empty |> hash_file_subtree;
   close_in file_in_ch;
   StrMap.update file_name (fun opt_v -> Some file_content_hash) idx
