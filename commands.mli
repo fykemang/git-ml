@@ -16,8 +16,8 @@ val hash_object : string -> unit
 (** [hash_object_default] implements the function of hash-object*)
 val hash_object_default: string -> unit
 
-(** [log ()] returns a formatted string detailing all commits *)
-val log : unit -> string
+(** [log b] prints a formatted string detailing all commits on branch b*)
+val log : string -> unit
 
 (** [ls_tree s] is the structure of a tree given [s] its hashed
     hex representation. *)

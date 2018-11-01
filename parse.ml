@@ -47,7 +47,7 @@ let check_arg_opt = function
     Raises: [Parse_error err s] if the next argument in [args] is missing and 
     cannot be processed with [spec] *)
 let eval (args : string list) = function
-  | String f when args <> [] -> List.hd args |> f
+  | String f when args <> [] -> String.concat " " args |> f
   | Unit f when args = [] -> f ()
   | _ -> raise (Parse_error (Arg_not_found, "can't evaluate missing or " ^
                                             "extraneous arguments"))

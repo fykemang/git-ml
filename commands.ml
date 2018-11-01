@@ -98,7 +98,12 @@ let hash_object_default file =
 
 let ls_tree s = failwith "Unimplemented"
 
-let log s = failwith "Unimplemented"
+let log branch = 
+  try
+    let log_string = read_file (open_in (".git-ml/logs/refs/heads/" ^ branch)) 
+    in
+    print_endline ("Git Log: \n" ^ log_string)
+  with e -> print_endline ("Error finding log file")
 
 (** [add_file_to_tree name content tree] adds the file with name [name] and 
     content [content] to tree [tree]. *)
@@ -166,6 +171,7 @@ let commit
                        (hash_str "root@3110.org") ^ "\n\n" ^ 
                        message in
   write_hash_contents commit_string commit_string;
+  print_endline ("[" ^ branch ^" " ^(hash_str commit_string) ^ "]");
   let oc = open_out (".git-ml/refs/heads/" ^ branch)  in 
   output_string oc (hash_str commit_string);
   let oc_HEAD = open_out (".git-ml/HEAD") in
@@ -198,7 +204,7 @@ let tree_content_to_file_list (pointer:string) =
   failwith "Unimplemented"
 
 (** This may not be at all useful. *)
-let cat_file_to_git_object (s:string) =
+let cat_file_to_git_object (s : string) =
   match String.split_on_char ' ' s with
   | h::t when h = "Blob" -> Blob (List.fold_left (^) "" t )
   | h::t when h = "Tree_Object" -> Tree_Object (List.fold_left (^) "" t ) 
@@ -214,19 +220,18 @@ let add_file (file : string) : unit =
   let file_content = read_file file_in_ch in
   let file_content_hash = Util.hash_str ("Blob " ^ file_content) in
   add_file_to_tree file file_content empty |> hash_file_subtree;
-  Printf.fprintf index_out_ch "%f %s %s\n"
-    (Unix.gettimeofday ()) file file_content_hash;
+  Printf.fprintf index_out_ch "%s %s\n" file file_content_hash;
   close_out index_out_ch;
   close_in file_in_ch
 
 (** [to_base_dir base] checks if the current directory has ".git-ml",
     if it does not then recurse through the file system back to the directory
     where it exists
-    Requires: The base directory is a parent folder of the current directory
-    [getcwd ()] *)
-let rec to_base_dir (base : string) : unit = 
+    Requires: The current directory is a child folder of the directory
+              where ".git-ml" exists *)
+let rec to_base_dir () : unit =
   try ignore (Sys.is_directory ".git-ml") with 
-    Sys_error s -> chdir "../"; to_base_dir (getcwd ()) 
+    Sys_error s -> chdir "../"; to_base_dir ()
 
 (** [hash_dir_files address] takes the address [address] to a directory
     and hashes each file and directory within and writes it to .git-ml/objects
@@ -239,29 +244,29 @@ let rec add_dir_files (address : string) : unit =
       then parse_dir dir
       else
         let path = address ^ Filename.dir_sep ^ n in
-        let base = getcwd () in
         chdir address;
         let is_dir = Sys.is_directory n in
-        to_base_dir base;
+        to_base_dir ();
         if is_dir then add_dir_files path else add_file path;
         parse_dir dir;
     with End_of_file -> closedir dir; in address |> opendir |> parse_dir
 
-
 let add (address : string) : unit = 
   try
     if Sys.is_directory ".git-ml" 
-    then begin 
-      if Sys.is_directory address 
-      then add_dir_files address
-      else add_file address 
-    end 
+    then 
+      begin
+        if Sys.is_directory address 
+        then add_dir_files address
+        else add_file address
+      end
   with
-  | Unix_error (ENOENT, name, ".git-ml") | Sys_error name -> 
+  | Unix_error (ENOENT, name, ".git-ml") ->
     print_endline ("fatal: Not a git-ml repository" ^
                    " (or any of the parent directories): .git-ml")
+  | Sys_error msg -> print_endline msg
 
-let tag () = 
+let tag () =
   let handle = ".git-ml/refs/tags" |> opendir in
   let string_to_print = read_dir_filenames handle "" in
   print_endline string_to_print
@@ -331,8 +336,8 @@ let file_list_from_index () =
   let rec helper acc = function
     | [] -> acc
     | h::t when h = "" -> helper acc t
-    | h::t -> helper (((List.nth (String.split_on_char ' ' h) 1),
-                       ((cat_string (List.nth (String.split_on_char ' ' h) 2)) 
+    | h::t -> helper (((List.nth (String.split_on_char ' ' h) 0),
+                       ((cat_string (List.nth (String.split_on_char ' ' h) 1)) 
                         |> Util.remove_blob))::acc) t
   in
   try
@@ -340,7 +345,7 @@ let file_list_from_index () =
     let index_contents = read_file index_in in
     String.split_on_char '\n' index_contents |>
     helper []
-  with e -> raise e; failwith ".git-ml/index, try git-ml add or git-ml init"
+  with e -> failwith ".git-ml/index, try git-ml add or git-ml init"
 
 let commit_command message branch =
   try 
