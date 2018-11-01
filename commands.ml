@@ -1,6 +1,7 @@
 open GitTree
 open Unix
 open Util
+module StrMap = Map.Make(String)
 
 type filename = string
 type file_content = string
@@ -208,13 +209,15 @@ let cat_file_to_git_object (s : string) =
   | _ -> failwith "Unimplemented"
 
 
-let add_file ?idx:(idx = []) (file : string) : (string * string) list = 
+let add_file ?idx:(idx = StrMap.empty) (file : string) = 
   let file_in_ch = file |> open_in in
   let file_content = read_file file_in_ch in
   let file_content_hash = Util.hash_str ("Blob " ^ file_content) in
-  add_file_to_tree file file_content empty |> hash_file_subtree;
+  let file_name = if Str.first_chars file 2 = "./" then Str.string_after file 2 
+  else file in
+  add_file_to_tree file_name file_content empty |> hash_file_subtree;
   close_in file_in_ch;
-  (file, file_content_hash)::idx
+  StrMap.update file_name (fun opt_v -> Some file_content_hash) idx
 
 (** [to_base_dir base] checks if the current directory has ".git-ml",
     if it does not then recurse through the file system back to the directory
@@ -228,10 +231,10 @@ let rec to_base_dir () : unit =
 (** [hash_dir_files address] takes the address [address] to a directory
     and hashes each file and directory within and writes it to .git-ml/objects
     and .git-ml/index using [add_file] *)
-let rec add_dir_files ?idx:(idx = []) 
-    (address : string) : (string * string) list =
-  let rec parse_dir ?idx:(idx = []) 
-      (dir : Unix.dir_handle) : (string * string) list =
+let rec add_dir_files ?idx:(idx = StrMap.empty) 
+    (address : string) =
+  let rec parse_dir ?idx:(idx = StrMap.empty) 
+      (dir : Unix.dir_handle) =
     try
       let n = readdir dir in
       if Filename.check_suffix n "." || Filename.check_suffix n ".git-ml" 
@@ -244,26 +247,28 @@ let rec add_dir_files ?idx:(idx = [])
         let new_idx = if is_dir then add_dir_files path ~idx:idx
           else add_file path ~idx:idx in
         parse_dir dir ~idx:new_idx;
-    with End_of_file -> closedir dir; idx in 
+    with End_of_file -> closedir dir; idx in
   address |> opendir |> parse_dir ~idx:idx
 
-let wr_to_idx (idx : (string * string) list) : unit = 
+(** [wr_to_idx idx] writes [idx] to the index *)
+let wr_to_idx (idx : StrMap.key StrMap.t) : unit = 
   chdir ".git-ml";
   let out_ch = open_out_gen [Open_wronly; Open_creat] 0o700 "index" in
-  let idx_str = List.fold_left
-      (fun acc (file, hash) -> (String.concat " " [file; hash])::acc) [] idx 
+  let idx_str = StrMap.fold
+      (fun file hash acc  -> (String.concat " " [file; hash])::acc) idx []
                 |> String.concat "\n" in
   output_string out_ch idx_str;
   close_out out_ch;
   chdir ".."
 
 let add address =
-  let read_idx (curr_idx : string list) : (string * string) list =
+  let read_idx (curr_idx : string list) =
     let fold_helper acc s =
       if s <> "" then let entry = String.split_on_char ' ' s in
-        (List.nth entry 0, List.nth entry 1)::acc
+        StrMap.add (List.nth entry 0) (List.nth entry 1) acc
       else acc in
-    if curr_idx = [""] then [] else List.fold_left fold_helper [] curr_idx in
+    if curr_idx = [""] then StrMap.empty 
+    else List.fold_left fold_helper StrMap.empty curr_idx in
   try
     if Sys.is_directory ".git-ml"
     then begin
@@ -273,9 +278,9 @@ let add address =
                      |> read_idx in
       chdir "..";
       let new_idx = if Sys.is_directory address
-        then add_dir_files address
-        else add_file address in
-      union curr_idx new_idx |> wr_to_idx
+        then add_dir_files address ~idx:curr_idx
+        else add_file address ~idx:curr_idx in
+      new_idx |> wr_to_idx;
     end 
   with
   | Unix_error (ENOENT, name, ".git-ml") ->
