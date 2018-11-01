@@ -128,6 +128,9 @@ let file_list_to_tree (file_list : file_object list) =
       helper (add_file_to_tree file_name file_content acc) t
   in helper GitTree.empty_tree_object file_list
 
+(** [file_list_to_tree_non_empty list start_tree] is the [GitTree.t] with 
+    [list] added to start_tree where collisions are handled by replacements with 
+    prioerity from list*)
 let file_list_to_tree_non_empty (file_list : file_object list) (start_tree) =
   let rec helper acc (lst : file_object list) = 
     match lst with 
@@ -201,7 +204,7 @@ let commit
     [string * string list] that is a list of filenames and file contents. 
     Mutually recurisve with [cat_file_to_git_object s] 
     Requires: 
-      pointer is a valid pointer to a tree. *)
+    pointer is a valid pointer to a tree. *)
 let tree_content_to_file_list (pointer:string) =
   failwith "Unimplemented"
 
@@ -230,7 +233,7 @@ let add_file (file : string) : unit =
     if it does not then recurse through the file system back to the directory
     where it exists
     Requires: The current directory is a child folder of the directory
-              where ".git-ml" exists *)
+          where ".git-ml" exists *)
 let rec to_base_dir () : unit =
   try ignore (Sys.is_directory ".git-ml") with 
     Sys_error s -> chdir "../"; to_base_dir ()
@@ -337,7 +340,7 @@ let current_head_to_git_tree () =
 (** [file_list_from index ()] gives the file_list to be commited from 
     the .git-ml/index file 
     Requires: 
-      index file is newline seperated in the form filename hash_adr*)
+    index file is newline seperated in the form filename hash_adr*)
 let file_list_from_index () =
   let rec helper acc = function
     | [] -> acc
