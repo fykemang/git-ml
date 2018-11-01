@@ -64,28 +64,26 @@ let rec read_dir_filenames handle s =
 
 let cat s = 
   let fold_header = String.sub s 0 2  in
-  let fold_footer = String.sub s 2 (String.length s - 2) in(
-    try(
-      let ic = open_in (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
-      let content = read_file ic in
-      print_endline content;
-    ) with e -> print_endline "Read Issue"
-  ) 
+  let fold_footer = String.sub s 2 (String.length s - 2) in
+  try
+    let ic = open_in (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
+    let content = read_file ic in
+    print_endline content;
+  with e -> print_endline "Read Issue" 
 
 (** [cat_string s] is the content of the file at hash_adr s*)
 let cat_string s = 
   let fold_header = String.sub s 0 2  in
-  let fold_footer = String.sub s 2 (String.length s - 2) in(
-    try(
-      let ic = open_in (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
-      try (let content = read_file ic in
-           content;) with e -> (
-          failwith 
-            ("cat_string read error on" ^ 
-             ".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer))
-    ) with e -> raise (FileNotFound 
-                         ("file not found: " ^ fold_header ^ "/" ^ fold_footer))
-  )
+  let fold_footer = String.sub s 2 (String.length s - 2) in
+  try
+    let ic = open_in (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
+    try 
+      let content = read_file ic in content; 
+    with e -> failwith ("cat_string read error on" ^ ".git-ml/objects/" 
+                        ^ fold_header ^ "/" ^ fold_footer)
+  with e -> raise (FileNotFound 
+                     ("file not found: " ^ fold_header ^ "/" ^ fold_footer))
+
 
 let hash_object file =
   let content = read_file (file |> open_in) in
@@ -151,11 +149,10 @@ let last_commit_hash (ic_ref:in_channel) =
   let rec last_line = function
     | [] -> ""
     | h::[] -> h
-    | h::t -> last_line t
-  in 
-  let commit_string_list = (
-    really_input_string ic_ref (in_channel_length ic_ref) |>
-    String.split_on_char '\n' |> last_line |> String.split_on_char ' ' ) in
+    | h::t -> last_line t in 
+  let commit_string_list = really_input_string ic_ref (in_channel_length ic_ref) 
+                           |> String.split_on_char '\n' |> last_line 
+                           |> String.split_on_char ' ' in
   List.nth commit_string_list 1
 
 let commit 
@@ -210,19 +207,14 @@ let cat_file_to_git_object (s : string) =
   | h::t when h = "Tree_Object" -> Tree_Object (List.fold_left (^) "" t ) 
   | _ -> failwith "Unimplemented"
 
-(** [add_file file] writes the hash, name, and time-stamp of the file [file]  
-    to .git-ml/index and stores the file content in .git-ml/objects *)
-let add_file (file : string) : unit =
-  chdir ".git-ml";
-  let index_out_ch = open_out_gen [Open_creat; Open_append] 0o700 "index" in
-  chdir "../";
+
+let add_file ?idx:(idx = []) (file : string) : (string * string) list = 
   let file_in_ch = file |> open_in in
   let file_content = read_file file_in_ch in
   let file_content_hash = Util.hash_str ("Blob " ^ file_content) in
   add_file_to_tree file file_content empty |> hash_file_subtree;
-  Printf.fprintf index_out_ch "%s %s\n" file file_content_hash;
-  close_out index_out_ch;
-  close_in file_in_ch
+  close_in file_in_ch;
+  (file, file_content_hash)::idx
 
 (** [to_base_dir base] checks if the current directory has ".git-ml",
     if it does not then recurse through the file system back to the directory
@@ -233,33 +225,78 @@ let rec to_base_dir () : unit =
   try ignore (Sys.is_directory ".git-ml") with 
     Sys_error s -> chdir "../"; to_base_dir ()
 
+let rec tl_lst_concat ?acc:(acc = []) lst lst' = match lst, lst' with
+| [], [] -> acc
+| l, [] ->  tl_lst_concat ~acc:(List.fold_left (fun acc x -> x::acc) acc l) [] []
+| [], r ->  tl_lst_concat ~acc:(List.fold_left (fun acc x -> x::acc) acc r) [] []
+| l, r -> tl_lst_concat ~acc:(List.fold_left (fun acc x -> x::acc) acc r) l []
+
 (** [hash_dir_files address] takes the address [address] to a directory
     and hashes each file and directory within and writes it to .git-ml/objects
     and .git-ml/index using [add_file] *)
-let rec add_dir_files (address : string) : unit =
-  let rec parse_dir dir = 
+let rec add_dir_files ?idx:(idx = []) 
+    (address : string) : (string * string) list =
+  let rec parse_dir ?idx:(idx = []) 
+      (dir : Unix.dir_handle) : (string * string) list =
     try
       let n = readdir dir in
       if Filename.check_suffix n "." || Filename.check_suffix n ".git-ml" 
-      then parse_dir dir
+      then parse_dir dir ~idx:idx
       else
         let path = address ^ Filename.dir_sep ^ n in
         chdir address;
         let is_dir = Sys.is_directory n in
         to_base_dir ();
-        if is_dir then add_dir_files path else add_file path;
-        parse_dir dir;
-    with End_of_file -> closedir dir; in address |> opendir |> parse_dir
+        print_endline path;
+        let new_idx = if is_dir then add_dir_files path ~idx:idx
+          else add_file path ~idx:idx in
+        parse_dir dir ~idx:new_idx;
+    with End_of_file -> closedir dir; idx in 
+  address |> opendir |> parse_dir ~idx:idx
 
-let add (address : string) : unit = 
+let rec union ?acc:(acc = []) lst lst' =
+  match lst, lst' with
+  | [], [] -> acc
+  | (file, hash)::tl, [] -> if not (List.mem_assoc file acc)
+    then union ~acc:((file, hash)::acc) tl []
+    else union ~acc:acc tl []
+  | [], (file, hash)::tl -> if not (List.mem_assoc file acc)
+    then union ~acc:((file, hash)::acc) [] tl
+    else union ~acc:acc [] tl
+  | l, (file, hash)::tl -> union ~acc:((file, hash)::acc) l tl
+
+let wr_to_idx idx : unit = 
+  chdir ".git-ml";
+  let out_ch = open_out_gen [Open_wronly; Open_creat] 0o700 "index" in
+  let idx_str = List.fold_left
+      (fun acc (file, hash) -> (String.concat " " [file; hash])::acc) [] idx 
+                |> String.concat "\n" in
+  output_string out_ch idx_str;
+  close_out out_ch;
+  chdir ".."
+
+let add address =
+  let read_idx (curr_idx : string list) : (string * string) list =
+    let fold_helper acc s =
+      if s <> "" then
+        let entry = String.split_on_char ' ' s in
+        (List.nth entry 0, List.nth entry 1)::acc
+      else acc in
+    if curr_idx = [""] then []
+    else List.fold_left fold_helper [] curr_idx in
   try
-    if Sys.is_directory ".git-ml" 
-    then 
-      begin
-        if Sys.is_directory address 
+    if Sys.is_directory ".git-ml"
+    then begin
+      chdir ".git-ml";
+      let in_ch = open_in_gen [Open_creat] 0o700 "index" in
+      let curr_idx = read_file in_ch |> String.split_on_char '\n' 
+                     |> read_idx in
+      chdir "..";
+      let new_idx = if Sys.is_directory address
         then add_dir_files address
-        else add_file address
-      end
+        else add_file address in
+      union curr_idx new_idx |> wr_to_idx;
+    end 
   with
   | Unix_error (ENOENT, name, ".git-ml") ->
     print_endline ("fatal: Not a git-ml repository" ^
@@ -311,13 +348,10 @@ let rec tree_hash_to_git_tree name hash_adr =
              ,[])::acc
       | h::t -> failwith 
                   ("helper only operates on Tree_Object, File or Blob," ^
-                   "attempting to operate on:" ^ h ^ 
-                   "| with rest of string:" ^ 
-                   (List.fold_left (fun a b -> a ^ " " ^ b) "" t))
-  in
-  let spl = (
-    cat_string hash_adr |>
-    String.split_on_char '\n') in
+                   "attempting to operate on:" ^ h ^
+                   "| with rest of string:" ^
+                   (List.fold_left (fun a b -> a ^ " " ^ b) "" t)) in
+  let spl = cat_string hash_adr |> String.split_on_char '\n' in
   let children = helper spl [] in Node (Tree_Object name, children)
 
 
@@ -327,8 +361,8 @@ let current_head_to_git_tree () =
   then raise (FileNotFound ("No such file: " ^ (".git-ml/" ^ commit_path)))
   else try
       let commit_hash = input_line (open_in (".git-ml/" ^ commit_path)) in
-      cat_string commit_hash |> String.split_on_char '\n' |>
-      List.hd |> String.split_on_char ' ' |> List.tl |> List.hd |>
+      cat_string commit_hash |> String.split_on_char '\n' |> List.hd 
+      |> String.split_on_char ' ' |> List.tl |> List.hd |>
       tree_hash_to_git_tree ""
     with e -> raise e
 
