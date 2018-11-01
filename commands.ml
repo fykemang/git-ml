@@ -334,6 +334,10 @@ let current_head_to_git_tree () =
       tree_hash_to_git_tree ""
     with e -> raise e
 
+(** [file_list_from index ()] gives the file_list to be commited from 
+    the .git-ml/index file 
+    Requires: 
+      index file is newline seperated in the form filename hash_adr*)
 let file_list_from_index () =
   let rec helper acc = function
     | [] -> acc

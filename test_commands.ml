@@ -18,5 +18,7 @@ let () =
   (Commands.file_list_to_tree lst) |> GitTree.pp_git_tree "" |> 
   print_endline
 let () = print_endline "Printing Tree from File Structure:"
-let a b = (Commands.current_head_to_git_tree ()) |> GitTree.pp_git_tree "" |> 
-          print_endline
+(** Test supressed because of concurrente modification *)
+let a suppress_this_test = 
+  (Commands.current_head_to_git_tree ()) |> GitTree.pp_git_tree "" |> 
+  print_endline
