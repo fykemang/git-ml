@@ -368,32 +368,42 @@ let compare_files hash file_name =
   let len = file_name |> String.length in
   let len' = len - 2 in
   let str = String.sub file_name 2 len' in
-  hash_file str = hash
+  print_endline hash;
+  print_endline ("Blob" ^ hash);
+  print_endline (String.sub hash 1 ((String.length hash) -1));
+  hash_file str = hash_str (String.sub hash 1 ((String.length hash) -1))
 
 let rec compare_file_blob prefix f l acc = 
   match l with
-  | [Node (Blob b, l')] -> if not (compare_files b (prefix^"/"^f)) 
-    then (f::acc) else acc
+  | [Node (Blob b, l')] -> if (compare_files b (prefix^"/"^f)) 
+    then acc else f::acc
   | _ -> failwith "A file must have one and only one blob child"
 
-let rec status1_help address lst tree : string list = 
+let rec status1_help address acc tree = 
+  (** [status1_help_children acc' l] is the updated [acc'] after processing 
+      all treenodes in [l]. *)
+  let rec status1_help_children level_addr (acc': string list) l = 
+    match l with
+    | [] -> acc'
+    | Leaf::t-> failwith "there should be no leaf"
+    | Node (o, lst)::t ->   
+      let updated = status1_help level_addr acc' (Node (o, lst)) in
+      status1_help_children level_addr (updated @ acc') t
+  in
   match tree with
   | Leaf -> failwith "there should be no Leaf in the tree"
-  | Node (Tree_Object treeob, l) -> begin
-      match l with 
-      | [] -> lst
-      | h::t -> status1_help (address ^ "/" ^treeob) lst h 
-    end
+  | Node (Tree_Object treeob, l) -> status1_help_children (address ^ "/" ^ treeob) acc l
+  | Node (File f, l) -> compare_file_blob address f l acc
   | Node (Blob b, l) -> failwith "cannot reach any blob"
-  | Node (File f, l) -> compare_file_blob address f l lst
   | Node (Commit c, l) -> failwith "cannot reach any commit"
   | Node (Ref r, l) -> failwith "cannot reach any ref"
 
 (* difference between workding directory (tree) and current commit *)
 let status1 () = status1_help "" [] (current_head_to_git_tree ())
 
+let rec print_list = function 
+  |[] -> ()
+  | h::t -> print_endline h ; print_list t
+
 let status () = 
-  let lst = status1 () in
-  match lst with
-  | [] -> ()
-  | h::t -> print_endline h ; ()
+  let lst = status1 () in print_list lst
