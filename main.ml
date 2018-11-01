@@ -57,9 +57,14 @@ let cmd_list = [
         action = Parse.String (fun b -> commit_command b "master")
       }
     ]
-  }
+  };
 
-
+  {
+    name = "status";
+    usage = "Checking status.";
+    default = Parse.Unit (status);
+    opts = []
+  };
 ]
 
 let main () = begin

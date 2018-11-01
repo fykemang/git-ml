@@ -41,6 +41,9 @@ val tag : unit -> unit
     Requires: name cannot be "." or ".." *)
 val tag_assign: string -> unit
 
+
+val status: unit -> unit
+
 (** [commit message branch lst] commits the file_object list into the 
     .git-ml/objects hashtable and creates a commit in master/[branch] **)
 val commit: string -> string -> file_object list -> GitTree.t -> unit
