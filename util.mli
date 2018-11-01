@@ -16,3 +16,11 @@ val remove_blob : string -> string
 (** [read_file ?s file_chnl] reads the [file_chnl] and outputs the content to 
     [s], it closes [file_chnl] after reaching the end of file. *)
 val read_file : ?s:string -> in_channel -> string
+
+(** [read_dir handle s] reads the directory [dir] and outputs the content to
+    [s], it closes [handle] after reaching the end of file. *)
+val read_dir : Unix.dir_handle -> string -> string
+
+(** [read_dir handle s] reads the directory [dir] and outputs the filenames to
+    [s], it closes [handle] after reaching the end of file. *)
+val read_dir_filenames : Unix.dir_handle -> string -> string

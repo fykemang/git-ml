@@ -7,7 +7,6 @@ type filename = string
 type file_content = string
 type file_object = filename * file_content
 
-
 exception FileNotFound of string 
 let init () = begin
   try
@@ -32,29 +31,6 @@ let init () = begin
   | Unix_error (EEXIST, func, file) ->
     print_endline (file ^ " already exists.");
 end
-
-
-
-(** [read_dir handle s] reads the directory [dir] and outputs the content to
-    [s], it closes [handle] after reaching the end of file. *)
-let rec read_dir handle s =
-  try
-    let cur_file = handle |> readdir in
-    let hash = Util.hash_file cur_file in
-    if hash = s then cur_file |> open_in |> read_file
-    else read_dir handle s 
-  with
-  | End_of_file -> let _ = handle |> closedir in raise Not_found
-
-(** [read_dir handle s] reads the directory [dir] and outputs the filenames to
-    [s], it closes [handle] after reaching the end of file. *)
-let rec read_dir_filenames handle s =
-  try
-    let cur_file = handle |> readdir in
-    if cur_file="." || cur_file=".." then read_dir_filenames handle s else
-      read_dir_filenames handle (s^cur_file^"\n")
-  with
-  | End_of_file -> let _ = handle |> closedir in s
 
 let cat s = 
   let fold_header = String.sub s 0 2  in
