@@ -185,7 +185,8 @@ let commit
                           ^ " " ^ 
                           "Root Author <root@3110.org> " ^ "commit: " 
                           ^ message);
-    GitTree.hash_file_subtree tree
+    GitTree.hash_file_subtree tree;
+    let oc = open_out ".git-ml/index" in ()
   with e -> (
       let last_hash = "00000000000000000000000000000000" in 
       let oc_ref = open_out (".git-ml/logs/refs/heads/" ^ branch) in
@@ -193,7 +194,8 @@ let commit
                             "Root Author <root@3110.org> " 
                             ^ "commit (inital) : " 
                             ^ message);
-      GitTree.hash_file_subtree tree)
+      GitTree.hash_file_subtree tree;
+      let oc = open_out ".git-ml/index" in ())
 
 (** [tree_content_to_file_list pointer] is the file list of type 
     [string * string list] that is a list of filenames and file contents. 
@@ -307,7 +309,7 @@ let rec tree_hash_to_git_tree name hash_adr =
       | h::t when h = "Blob" -> 
         Node ((Blob 
                  (let s = List.fold_left (fun a b -> a ^ " " ^ b) "" t in  
-                  String.sub s 1 (String.length s - 1)))
+                  String.sub s 1 (String.length s - 1)))  
              ,[])::acc
       | h::t -> failwith 
                   ("helper only operates on Tree_Object, File or Blob," ^
