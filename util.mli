@@ -11,4 +11,9 @@ val hash_str : string -> string
 val print_hash_str : string -> unit
 
 (** [remove_blob s] is the string with the Blob header removed from s*)
-val remove_blob: string -> string
+val remove_blob : string -> string
+
+(** [union ?acc lst lst'] is a list with elements in [lst] or [lst']. When
+    handling duplicates elements in lst' take precedence. *)
+val union : ?acc:('a * 'b) list -> ('a * 'b) list -> ('a * 'b) list 
+  -> ('a * 'b) list

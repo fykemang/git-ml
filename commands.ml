@@ -225,12 +225,6 @@ let rec to_base_dir () : unit =
   try ignore (Sys.is_directory ".git-ml") with 
     Sys_error s -> chdir "../"; to_base_dir ()
 
-let rec tl_lst_concat ?acc:(acc = []) lst lst' = match lst, lst' with
-| [], [] -> acc
-| l, [] ->  tl_lst_concat ~acc:(List.fold_left (fun acc x -> x::acc) acc l) [] []
-| [], r ->  tl_lst_concat ~acc:(List.fold_left (fun acc x -> x::acc) acc r) [] []
-| l, r -> tl_lst_concat ~acc:(List.fold_left (fun acc x -> x::acc) acc r) l []
-
 (** [hash_dir_files address] takes the address [address] to a directory
     and hashes each file and directory within and writes it to .git-ml/objects
     and .git-ml/index using [add_file] *)
@@ -247,25 +241,13 @@ let rec add_dir_files ?idx:(idx = [])
         chdir address;
         let is_dir = Sys.is_directory n in
         to_base_dir ();
-        print_endline path;
         let new_idx = if is_dir then add_dir_files path ~idx:idx
           else add_file path ~idx:idx in
         parse_dir dir ~idx:new_idx;
     with End_of_file -> closedir dir; idx in 
   address |> opendir |> parse_dir ~idx:idx
 
-let rec union ?acc:(acc = []) lst lst' =
-  match lst, lst' with
-  | [], [] -> acc
-  | (file, hash)::tl, [] -> if not (List.mem_assoc file acc)
-    then union ~acc:((file, hash)::acc) tl []
-    else union ~acc:acc tl []
-  | [], (file, hash)::tl -> if not (List.mem_assoc file acc)
-    then union ~acc:((file, hash)::acc) [] tl
-    else union ~acc:acc [] tl
-  | l, (file, hash)::tl -> union ~acc:((file, hash)::acc) l tl
-
-let wr_to_idx idx : unit = 
+let wr_to_idx (idx : (string * string) list) : unit = 
   chdir ".git-ml";
   let out_ch = open_out_gen [Open_wronly; Open_creat] 0o700 "index" in
   let idx_str = List.fold_left
@@ -278,12 +260,10 @@ let wr_to_idx idx : unit =
 let add address =
   let read_idx (curr_idx : string list) : (string * string) list =
     let fold_helper acc s =
-      if s <> "" then
-        let entry = String.split_on_char ' ' s in
+      if s <> "" then let entry = String.split_on_char ' ' s in
         (List.nth entry 0, List.nth entry 1)::acc
       else acc in
-    if curr_idx = [""] then []
-    else List.fold_left fold_helper [] curr_idx in
+    if curr_idx = [""] then [] else List.fold_left fold_helper [] curr_idx in
   try
     if Sys.is_directory ".git-ml"
     then begin
@@ -295,7 +275,7 @@ let add address =
       let new_idx = if Sys.is_directory address
         then add_dir_files address
         else add_file address in
-      union curr_idx new_idx |> wr_to_idx;
+      union curr_idx new_idx |> wr_to_idx
     end 
   with
   | Unix_error (ENOENT, name, ".git-ml") ->
