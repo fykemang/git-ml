@@ -12,3 +12,7 @@ val print_hash_str : string -> unit
 
 (** [remove_blob s] is the string with the Blob header removed from s*)
 val remove_blob : string -> string
+
+(** [read_file ?s file_chnl] reads the [file_chnl] and outputs the content to 
+    [s], it closes [file_chnl] after reaching the end of file. *)
+val read_file : ?s:string -> in_channel -> string

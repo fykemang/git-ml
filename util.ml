@@ -11,3 +11,10 @@ let remove_blob s =
   | h::t when h = "Blob" -> (List.fold_left (fun a b -> a ^ " " ^ b) "" t) 
   | h::t -> failwith "Trying to remove_blob on string containing no Blob header"
   | [] -> s 
+
+let rec read_file ?s:(s = "") file_chnl =
+  try
+    let cur_line = file_chnl |> input_line in
+    read_file file_chnl ~s: (s ^ cur_line ^ "\n")
+  with
+  | End_of_file -> let _ = file_chnl |> close_in in s

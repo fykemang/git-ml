@@ -33,14 +33,7 @@ let init () = begin
     print_endline (file ^ " already exists.");
 end
 
-(** [read_file ?s file_chnl] reads the [file_chnl] and outputs the content to 
-    [s], it closes [file_chnl] after reaching the end of file. *)
-let rec read_file ?s:(s = "") file_chnl =
-  try
-    let cur_line = file_chnl |> input_line in
-    read_file file_chnl ~s: (s ^ cur_line ^ "\n")
-  with
-  | End_of_file -> let _ = file_chnl |> close_in in s
+
 
 (** [read_dir handle s] reads the directory [dir] and outputs the content to
     [s], it closes [handle] after reaching the end of file. *)
