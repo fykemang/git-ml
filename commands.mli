@@ -27,9 +27,15 @@ val ls_tree : string -> string
     [file_list]. *)
 val file_list_to_tree: file_object list -> GitTree.t 
 
-(** [add file] writes to the index of the repository data about
-    [file] if it exists. *)
+(** [add address] writes the file address and the the file content hash to the
+    index. If [address] is the address of a folder, all files and subfolders 
+    inside will be written to the index and added to the objects directory.
+    Requires: [address] is a valid file or directory in the same folder 
+    where /git-ml is contained *)
 val add : string -> unit
+
+(** [rm address] deletes the requested file from the index *)
+val rm : string -> unit
 
 (** [tag] pretty prints all the tags that have been added, it prints nothing if
     there are no tags assigned yet*)

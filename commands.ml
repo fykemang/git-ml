@@ -66,12 +66,12 @@ let hash_object_default file =
 
 let ls_tree s = failwith "Unimplemented"
 
-let log branch = 
+let log branch =
   try
     let log_string = read_file (open_in (".git-ml/logs/refs/heads/" ^ branch)) 
-    in
-    print_endline ("Git Log: \n" ^ log_string)
-  with e -> print_endline ("Error finding log file")
+    in print_endline ("Git Log: \n" ^ log_string)
+  with e -> print_endline 
+              ("Error: No log file has been generated yet. No commits.")
 
 (** [add_file_to_tree name content tree] adds the file with name [name] and 
     content [content] to tree [tree]. *)
@@ -80,9 +80,9 @@ let add_file_to_tree name content (tree : GitTree.t) =
     match name_lst with 
     | [] -> tree
     | h::[] -> GitTree.add_file_to_tree h content tree
-    | subdir::t -> GitTree.add_child_tree 
-                     ((GitTree.get_subdirectory_tree (subdir) tree) 
-                      |> add_file_to_tree_helper t content) tree   
+    | dir::t -> GitTree.add_child_tree 
+                  ((GitTree.get_subdirectory_tree (dir) tree) 
+                   |> add_file_to_tree_helper t content) tree   
   in
   add_file_to_tree_helper (String.split_on_char '/' name) content tree 
 
@@ -158,7 +158,7 @@ let commit
       let oc_ref = open_out (".git-ml/logs/refs/heads/" ^ branch) in
       output_string oc_ref (last_hash ^ " " ^ (hash_str commit_string) ^ " " ^ 
                             "Root Author <root@3110.org> " 
-                            ^ "commit (inital) : " 
+                            ^ "commit: " 
                             ^ message);
       GitTree.hash_file_subtree tree)
 
@@ -222,38 +222,55 @@ let rec add_dir_files ?idx:(idx = StrMap.empty)
   address |> opendir |> parse_dir ~idx:idx
 
 (** [wr_to_idx idx] writes [idx] to the index *)
-let wr_to_idx (idx : StrMap.key StrMap.t) : unit = 
+let wr_to_idx (idx : string StrMap.t) : unit = 
   chdir ".git-ml";
   let out_ch = open_out_gen [Open_wronly; Open_creat] 0o700 "index" in
   let idx_str = StrMap.fold
-      (fun file hash acc  -> (String.concat " " [file; hash])::acc) idx []
-                |> String.concat "\n" in
+      (fun file hash acc  -> (String.concat " " [file; hash])::acc) idx [] 
+                |> List.sort compare |> String.concat "\n" in
   output_string out_ch idx_str;
   close_out out_ch;
   chdir ".."
 
+(** [read_idx curr_idx] takes a string list [curr_idx] representing the current
+    entries in the index and returns a mapping from each entries filename
+    to content hash *)
+let read_idx () : string StrMap.t =
+  chdir ".git-ml";
+  let in_ch = open_in_gen [Open_creat] 0o700 "index" in
+  chdir "..";
+  let curr_idx = read_file in_ch |> String.split_on_char '\n' in
+  let fold_helper acc s =
+    if s <> "" then let entry = String.split_on_char ' ' s in
+      StrMap.add (List.nth entry 0) (List.nth entry 1) acc
+    else acc in
+  if curr_idx = [""]
+  then StrMap.empty
+  else List.fold_left fold_helper StrMap.empty curr_idx
+
 let add address =
-  let read_idx (curr_idx : string list) =
-    let fold_helper acc s =
-      if s <> "" then let entry = String.split_on_char ' ' s in
-        StrMap.add (List.nth entry 0) (List.nth entry 1) acc
-      else acc in
-    if curr_idx = [""] then StrMap.empty 
-    else List.fold_left fold_helper StrMap.empty curr_idx in
   try
     if Sys.is_directory ".git-ml"
     then begin
-      chdir ".git-ml";
-      let in_ch = open_in_gen [Open_creat] 0o700 "index" in
-      let curr_idx = read_file in_ch |> String.split_on_char '\n' 
-                     |> read_idx in
-      chdir "..";
+      let curr_idx = read_idx () in
       let new_idx = if Sys.is_directory address
         then add_dir_files address ~idx:curr_idx
         else add_file address ~idx:curr_idx in
-      new_idx |> wr_to_idx;
-    end 
+      wr_to_idx new_idx;
+    end
   with
+  | Unix_error (ENOENT, name, ".git-ml") ->
+    print_endline ("fatal: Not a git-ml repository" ^
+                   " (or any of the parent directories): .git-ml")
+  | Sys_error msg -> print_endline msg
+
+let rm address =
+  try
+    if Sys.is_directory ".git-ml"
+    then
+      let curr_idx = read_idx () in
+      Sys.remove address;
+  with 
   | Unix_error (ENOENT, name, ".git-ml") ->
     print_endline ("fatal: Not a git-ml repository" ^
                    " (or any of the parent directories): .git-ml")
@@ -273,8 +290,7 @@ let tag_assign str =
     try
       if Sys.file_exists (".git-ml/refs/tags/" ^ str) 
       then failwith "tag already exists" 
-      else
-        let oc = open_out (".git-ml/refs/tags/" ^ str) in
+      else let oc = open_out (".git-ml/refs/tags/" ^ str) in
         output_string oc commit_hash;
         close_out oc
     with

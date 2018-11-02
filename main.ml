@@ -30,8 +30,14 @@ let cmd_list = [
   };
   {
     name = "add";
-    usage = "Add file to the staging area.";
+    usage = "Add file/directory to the staging area.";
     default = Parse.String (add);
+    opts = []
+  };
+  {
+    name = "rm";
+    usage = "Remove file from the staging area.";
+    default = Parse.String (rm);
     opts = []
   };
   {
@@ -70,8 +76,6 @@ let cmd_list = [
       }
     ]
   };
-
-
   {
     name = "status";
     usage = "Checking status.";

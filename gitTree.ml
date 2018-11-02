@@ -62,9 +62,9 @@ let add_file_to_tree (filename:string) (file_content:string) = function
   | Leaf -> add_child_tree (Node ((File filename), 
                                   (Node ((Blob file_content),[])::[]))) empty 
   | Node (o, lst) -> add_child_tree
-                      (Node ((File filename), 
-                             (Node ((Blob file_content),[])::[]))) 
-                      (Node (o,lst))
+                       (Node ((File filename), 
+                              (Node ((Blob file_content),[])::[]))) 
+                       (Node (o,lst))
 
 let string_of_git_object = function
   | Tree_Object s -> s
@@ -139,10 +139,10 @@ let rec pp_git_tree (acc:string) (tree:t) =
   | Leaf -> ""
   | Node (o, lst) -> match o with 
     | Tree_Object s -> acc ^ (tree_children_content lst) ^ "\n" ^
-                      (pp_git_tree_children "" lst)
+                       (pp_git_tree_children "" lst)
     | File s -> acc ^ "File " ^ s ^ "\n" ^ (pp_git_tree_children "" lst)
     | Blob s -> acc ^ "Blob " ^ s ^ "\n" ^ (pp_git_tree_children "" lst)
     | _ -> acc ^ "pretty printing not supported for this node" ^ 
-          (pp_git_tree_children "" lst)
+           (pp_git_tree_children "" lst)
 
 
