@@ -1,3 +1,5 @@
+
+
 type filename = string
 type file_content = string
 type file_object = filename * file_content
@@ -23,10 +25,6 @@ val log : string -> unit
     hex representation. *)
 val ls_tree : string -> string
 
-(** [file_list_to_tree file_list] is the [GitTree] constructed from 
-    [file_list]. *)
-val file_list_to_tree: file_object list -> GitTree.t 
-
 (** [add address] writes the file address and the the file content hash to the
     index. If [address] is the address of a folder, all files and subfolders 
     inside will be written to the index and added to the objects directory.
@@ -47,12 +45,7 @@ val tag : unit -> unit
     Requires: name cannot be "." or ".." *)
 val tag_assign: string -> unit
 
-
 val status: unit -> unit
-
-(** [commit message branch lst] commits the file_object list into the 
-    .git-ml/objects hashtable and creates a commit in master/[branch] **)
-val commit: string -> string -> file_object list -> GitTree.t -> unit
 
 (** [current_head_to_git_Tree ()] gives the GitTree represented by the current 
     head **)
