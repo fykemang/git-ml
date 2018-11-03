@@ -311,9 +311,8 @@ let current_head_to_git_tree () =
     |> String.split_on_char ' ' |> List.tl |> List.hd |>
     tree_hash_to_git_tree ""
 
-let file_list_from_index () =
-  StrMap.fold (fun file hash acc -> 
-      StrMap.add file (hash |> cat_string |> remove_blob) acc) 
+let file_list_from_index () = StrMap.fold (fun file hash acc -> 
+    StrMap.add file (hash |> cat_string |> remove_blob) acc) 
     (read_idx ()) StrMap.empty
 
 let commit_command message branch =
