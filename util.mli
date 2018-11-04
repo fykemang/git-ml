@@ -10,16 +10,14 @@ val hash_str : string -> string
 (** [print_hash s] outputs the hash of a string to stdout *)
 val print_hash_str : string -> unit
 
-(** [remove_blob s] is the string with the Blob header removed from s*)
-val remove_blob : string -> string
+(** [remove_object_tag s tag] is the string with an object tag [tag] 
+    removed from s *)
+val remove_object_tag : string -> string -> string
 
 (** [read_file ?s file_chnl] reads the [file_chnl] and outputs the content to 
     [s], it closes [file_chnl] after reaching the end of file. *)
 val read_file : ?s:string -> in_channel -> string
 
-(** [read_dir handle s] reads the directory [dir] and outputs the content to
-    [s], it closes [handle] after reaching the end of file. *)
-val read_dir : Unix.dir_handle -> string -> string
 
 (** [read_dir handle s] reads the directory [dir] and outputs the filenames to
     [s], it closes [handle] after reaching the end of file. *)

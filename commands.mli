@@ -45,6 +45,8 @@ val tag : unit -> unit
     Requires: name cannot be "." or ".." *)
 val tag_assign: string -> unit
 
+(** [status ()] compares files in the working directory with the 
+    staging directory and prints files which have been modified *)
 val status: unit -> unit
 
 (** [current_head_to_git_Tree ()] gives the GitTree represented by the current 

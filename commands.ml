@@ -120,16 +120,16 @@ let commit
     (start_tree : GitTree.t) : unit = 
   let tree = file_list_to_tree file_list ~tree:start_tree in
   let commit_string =  "Tree_Object " ^ (GitTree.hash_of_tree (tree))
-                       ^ "\n" ^ "author Root Author <root@3110.org> " ^
+                       ^ "\nauthor Root Author <root@3110.org> " ^
                        (hash_str "root@3110.org") ^ "\n" ^ 
-                       "commiter Root Author <root@3110.org> " ^
+                       "committer Root Author <root@3110.org> " ^
                        (hash_str "root@3110.org") ^ "\n\n" ^ 
                        message in
   write_hash_contents commit_string commit_string;
   print_endline ("[" ^ branch ^ " " ^ (hash_str commit_string) ^ "]");
   let oc = open_out (".git-ml/refs/heads/" ^ branch)  in 
   output_string oc (hash_str commit_string);
-  let oc_HEAD = open_out (".git-ml/HEAD") in
+  let oc_HEAD = open_out ".git-ml/HEAD" in
   output_string oc_HEAD ("refs/heads/" ^ branch);
   try
     let in_ref = open_in (".git-ml/logs/refs/heads/" ^ branch) in  
@@ -163,14 +163,12 @@ let cat_file_to_git_object (s : string) =
 (** [add_file ?idx file] adds file to ".git-ml/objects/" and is a 
     map with a mapping of [file] to a hash of the file contents *)
 let add_file ?idx:(idx = StrMap.empty) (file : string) : StrMap.key StrMap.t = 
-  let file_in_ch = file |> open_in in
-  let file_content = read_file file_in_ch in
+  let file_content = file |> open_in |> read_file in
   let file_content_hash = Util.hash_str ("Blob " ^ file_content) in
   let file_name = if Str.first_chars file 2 = "./" 
     then Str.string_after file 2 
     else file in
   add_file_to_tree file_name file_content empty |> hash_file_subtree;
-  close_in file_in_ch;
   StrMap.update file_name (fun opt_v -> Some file_content_hash) idx
 
 (** [to_base_dir base] checks if the current directory has ".git-ml",
@@ -303,22 +301,20 @@ let current_head_to_git_tree () =
     cat_string commit_hash |> String.split_on_char '\n' |> List.hd 
     |> String.split_on_char ' ' |> List.tl |> List.hd |> tree_hash_to_git_tree
 
+(** [idx_to_content ()] is a mapping from file name to file content based on
+    index/git-ml file *)
 let idx_to_content () = StrMap.fold 
     (fun file hash acc -> 
-       StrMap.add file (hash |> cat_string |> remove_blob) acc) 
+       StrMap.add file (hash |> cat_string |> remove_object_tag "Blob") acc) 
     (read_idx ()) StrMap.empty
 
 let commit_command message branch =
   try 
     let commit_path = input_line (open_in ".git-ml/HEAD") in
     if not (Sys.file_exists (".git-ml/" ^ commit_path))
-    then
-      commit message branch (idx_to_content ()) GitTree.empty_tree_object
-    else 
-      commit message branch 
-        (idx_to_content ()) (current_head_to_git_tree ())
+    then commit message branch (idx_to_content ()) GitTree.empty_tree_object
+    else commit message branch (idx_to_content ()) (current_head_to_git_tree ())
   with e -> commit message branch (idx_to_content ()) GitTree.empty_tree_object
-
 
 let commit_command_default () = 
   commit_command "no commit message provided" "master" 
@@ -371,17 +367,20 @@ let rec print_list = function
 let status () = 
   let lst = status1 () in print_list lst
 
-let rec find_object (t:GitTree.t) = match t with
+let rec mem_file (t : GitTree.t) (hash : string) : bool = 
+  match t with
   | Leaf -> failwith "Should not have leaf!"
-  | Node (obj, lst) -> failwith "Unimplemented"
+  | Node (obj, lst) -> if string_of_git_object obj = hash then true
+    else List.fold_left (fun acc t -> mem_file t hash) false lst
 
 let rm address =
   try
     let curr_idx = read_idx () in
     let curr_tree = current_head_to_git_tree () in
-    let f_hash = hash_file address in 
-    Sys.remove address;
-  with 
+    let file_hash =  "Blob " ^ (address |> open_in |> read_file) |> hash_str in
+    print_endline (string_of_bool (mem_file curr_tree file_hash));
+    (* Sys.remove address; *)
+  with
   | Unix_error (ENOENT, name, ".git-ml") ->
     print_endline ("fatal: Not a git-ml repository" ^
                    " (or any of the parent directories): .git-ml")
