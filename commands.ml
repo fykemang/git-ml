@@ -69,7 +69,7 @@ let log branch =
   try
     let log_string = read_file (open_in (".git-ml/logs/refs/heads/" ^ branch)) 
     in print_endline ("Git Log: \n" ^ log_string)
-  with e -> print_endline 
+  with e -> print_endline
               ("Error: No log file has been generated yet. No commits.")
 
 (** [add_file_to_tree name content tree] adds the file with name [name] and 
@@ -114,10 +114,10 @@ let last_commit_hash (ic_ref:in_channel) =
   List.nth commit_string_list 1
 
 let commit 
-    (message:string) 
-    (branch:string) 
-    (file_list: string StrMap.t) 
-    (start_tree:GitTree.t) : unit = 
+    (message : string)
+    (branch : string) 
+    (file_list : string StrMap.t) 
+    (start_tree : GitTree.t) : unit = 
   let tree = file_list_to_tree file_list ~tree:start_tree in
   let commit_string =  "Tree_Object " ^ (GitTree.hash_of_tree (tree))
                        ^ "\n" ^ "author Root Author <root@3110.org> " ^
@@ -137,25 +137,20 @@ let commit
     let oc_ref = open_out_gen [Open_append] 0o666 
         (".git-ml/logs/refs/heads/" ^ branch) in
     output_string oc_ref ("\n" ^ last_hash ^ " " ^ (hash_str commit_string) 
-                          ^ " " ^ 
-                          "Root Author <root@3110.org> " ^ "commit: " 
-                          ^ message);
+                          ^ " Root Author <root@3110.org> commit: " ^ message);
     GitTree.hash_file_subtree tree
-  with e -> (
-      let last_hash = "00000000000000000000000000000000" in 
-      let oc_ref = open_out (".git-ml/logs/refs/heads/" ^ branch) in
-      output_string oc_ref (last_hash ^ " " ^ (hash_str commit_string) ^ " " ^ 
-                            "Root Author <root@3110.org> " 
-                            ^ "commit: " 
-                            ^ message);
-      GitTree.hash_file_subtree tree)
+  with e -> let last_hash = "00000000000000000000000000000000" in 
+    let oc_ref = open_out (".git-ml/logs/refs/heads/" ^ branch) in
+    output_string oc_ref (last_hash ^ " " ^ (hash_str commit_string) ^
+                          " Root Author <root@3110.org> commit: " ^ message);
+    GitTree.hash_file_subtree tree
 
 (** [tree_content_to_file_list pointer] is the file list of type 
     [string * string list] that is a list of filenames and file contents. 
     Mutually recurisve with [cat_file_to_git_object s] 
     Requires: 
       pointer is a valid pointer to a tree. *)
-let tree_content_to_file_list (pointer:string) =
+let tree_content_to_file_list (pointer : string) =
   failwith "Unimplemented"
 
 (** This may not be at all useful. *)
@@ -238,19 +233,16 @@ let read_idx () : string StrMap.t =
 
 let add address =
   try
-    if Sys.is_directory ".git-ml"
-    then begin
-      let curr_idx = read_idx () in
-      let new_idx = if Sys.is_directory address
-        then add_dir_files address ~idx:curr_idx
-        else add_file address ~idx:curr_idx in
-      wr_to_idx new_idx;
-    end
+    let curr_idx = read_idx () in
+    let new_idx = if Sys.is_directory address
+      then add_dir_files address ~idx:curr_idx
+      else add_file address ~idx:curr_idx in
+    wr_to_idx new_idx;
   with
   | Unix_error (ENOENT, name, ".git-ml") ->
-    print_endline ("fatal: Not a git-ml repository" ^
-                   " (or any of the parent directories): .git-ml")
-  | Sys_error msg -> print_endline msg
+    print_endline "fatal: Not a git-ml repository \
+                   or any of the parent directories): .git-ml"
+  | Sys_error e -> print_endline e
 
 let tag () =
   let handle = ".git-ml/refs/tags" |> opendir in
@@ -265,7 +257,7 @@ let tag_assign str =
     let commit_hash = input_line (open_in (".git-ml/" ^ commit_path)) in 
     try
       if Sys.file_exists (".git-ml/refs/tags/" ^ str) 
-      then failwith "tag already exists" 
+      then failwith ("fatal: tag " ^ str ^ " already exists")
       else let oc = open_out (".git-ml/refs/tags/" ^ str) in
         output_string oc commit_hash;
         close_out oc
@@ -274,8 +266,8 @@ let tag_assign str =
 
 (** [tree_hash_to_git_tree hash_adr] is the GitTree.t of the Tree_Object at
     hash_adr. 
-    Requires: [hash_adr] is a valid hash adress to a Tree_Object *)
-let rec tree_hash_to_git_tree name hash_adr =
+    Requires: [hash_adr] is a valid hash address to a Tree_Object *)
+let rec tree_hash_to_git_tree ?name:(name = "") hash_adr =
   let rec helper (lst:string list) acc : GitTree.t list =
     match lst with
     | [] -> acc
@@ -283,17 +275,18 @@ let rec tree_hash_to_git_tree name hash_adr =
       | [] -> failwith "Error, helper operating on empty string"
       | h::t when h = "" -> helper tail acc 
       | h::t when h = "Tree_Object" -> 
-        helper tail ((tree_hash_to_git_tree (List.nth t 1) (List.nth t 0))::acc)
+        helper tail ((tree_hash_to_git_tree (List.nth t 0) ~name:(List.nth t 1))::acc)
       | h::t when h = "File" -> 
         helper tail (Node ((File (List.nth t 1)), 
                            ((helper ((cat_string (List.nth t 0)) 
                                      |> (String.split_on_char '\n')) []
                             )))::acc)
       | h::t when h = "Blob" -> 
-        Node ((Blob 
-                 (let s = List.fold_left (fun a b -> a ^ " " ^ b) "" t in  
-                  String.sub s 1 (String.length s - 1)))
-             ,[])::acc
+        Node ((
+            Blob (
+              let s = List.fold_left (fun a b -> a ^ " " ^ b) "" t in  
+              String.sub s 1 (String.length s - 1))),[]
+          )::acc
       | h::t -> failwith
                   ("helper only operates on Tree_Object, File or Blob," ^
                    "attempting to operate on:" ^ h ^
@@ -308,11 +301,11 @@ let current_head_to_git_tree () =
   then raise (FileNotFound ("No such file: " ^ (".git-ml/" ^ commit_path)))
   else let commit_hash = input_line (open_in (".git-ml/" ^ commit_path)) in
     cat_string commit_hash |> String.split_on_char '\n' |> List.hd 
-    |> String.split_on_char ' ' |> List.tl |> List.hd |>
-    tree_hash_to_git_tree ""
+    |> String.split_on_char ' ' |> List.tl |> List.hd |> tree_hash_to_git_tree
 
-let file_list_from_index () = StrMap.fold (fun file hash acc -> 
-    StrMap.add file (hash |> cat_string |> remove_blob) acc) 
+let idx_to_content () = StrMap.fold 
+    (fun file hash acc -> 
+       StrMap.add file (hash |> cat_string |> remove_blob) acc) 
     (read_idx ()) StrMap.empty
 
 let commit_command message branch =
@@ -320,14 +313,12 @@ let commit_command message branch =
     let commit_path = input_line (open_in ".git-ml/HEAD") in
     if not (Sys.file_exists (".git-ml/" ^ commit_path))
     then
-      commit message branch 
-        (file_list_from_index ()) GitTree.empty_tree_object
+      commit message branch (idx_to_content ()) GitTree.empty_tree_object
     else 
       commit message branch 
-        (file_list_from_index ()) (current_head_to_git_tree ())
-  with e ->
-    commit message branch 
-      (file_list_from_index ()) GitTree.empty_tree_object
+        (idx_to_content ()) (current_head_to_git_tree ())
+  with e -> commit message branch (idx_to_content ()) GitTree.empty_tree_object
+
 
 let commit_command_default () = 
   commit_command "no commit message provided" "master" 
@@ -343,14 +334,17 @@ let compare_files hash file_name =
 
 let rec compare_file_blob prefix f l acc = 
   match l with
-  | [Node (Blob b, l')] -> if (compare_files b (prefix^"/"^f)) 
+  | [Node (Blob b, l')] -> if compare_files b (prefix ^ "/" ^ f) 
     then acc else f::acc
   | _ -> failwith "A file must have one and only one blob child"
 
 let rec status1_help address acc tree = 
   (** [status1_help_children acc' l] is the updated [acc'] after processing 
       all treenodes in [l]. *)
-  let rec status1_help_children level_addr (acc': string list) l = 
+  let rec status1_help_children 
+      (level_addr : string) 
+      (acc': string list) 
+      (l: GitTree.t list) : string list = 
     match l with
     | [] -> acc'
     | Leaf::t-> failwith "there should be no leaf"
@@ -360,13 +354,14 @@ let rec status1_help address acc tree =
   in
   match tree with
   | Leaf -> failwith "there should be no Leaf in the tree"
-  | Node (Tree_Object treeob, l) -> status1_help_children (address ^ "/" ^ treeob) acc l
+  | Node (Tree_Object treeob, l) -> status1_help_children 
+                                      (address ^ "/" ^ treeob) acc l
   | Node (File f, l) -> compare_file_blob address f l acc
   | Node (Blob b, l) -> failwith "cannot reach any blob"
   | Node (Commit c, l) -> failwith "cannot reach any commit"
   | Node (Ref r, l) -> failwith "cannot reach any ref"
 
-(* difference between workding directory (tree) and current commit *)
+(* difference between working directory (tree) and current commit *)
 let status1 () = status1_help "" [] (current_head_to_git_tree ())
 
 let rec print_list = function 
@@ -376,17 +371,20 @@ let rec print_list = function
 let status () = 
   let lst = status1 () in print_list lst
 
+let rec find_object (t:GitTree.t) = match t with
+  | Leaf -> failwith "Should not have leaf!"
+  | Node (obj, lst) -> failwith "Unimplemented"
+
 let rm address =
   try
-    if Sys.is_directory ".git-ml"
-    then
-      let curr_idx = read_idx () in
-      let curr_tree = current_head_to_git_tree () in
-      print_endline "hellp";
-      print_endline (pp_git_tree curr_tree);
-      (* Sys.remove address; *)
+    let curr_idx = read_idx () in
+    let curr_tree = current_head_to_git_tree () in
+    let f_hash = hash_file address in 
+    Sys.remove address;
   with 
   | Unix_error (ENOENT, name, ".git-ml") ->
     print_endline ("fatal: Not a git-ml repository" ^
                    " (or any of the parent directories): .git-ml")
-  | Sys_error msg -> print_endline msg
+  | Unix_error (ENOENT, name, ".git-ml") ->
+    print_endline ("fatal: Not a git-ml repository" ^
+                   " (or any of the parent directories): .git-ml")

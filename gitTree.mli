@@ -7,11 +7,11 @@ type git_object =
   | Commit of string
   | Ref of string
 
-(** [t] is the type of a git tree**)
+(** [t] is the type of a git tree *)
 type t = Leaf | Node of git_object * t list 
 
 (** [value t] gives the [git_object] at the root node of [GitTree.t]. *)
-val value: t -> git_object 
+val root: t -> git_object
 
 (** [empty] is the empty [GitTree]. *)
 val empty : t

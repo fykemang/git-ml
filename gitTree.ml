@@ -23,13 +23,13 @@ let equal_node_value n1 n2 =
   | Node (o1,_), Node(o2, _) when o1 = o2 -> true
   | _,_ -> false 
 
-let value = function
+let root = function
   | Leaf -> raise (EmptyTreeException "Empty tree does not have value")
-  | Node (o,lst) -> o
+  | Node (o, lst) -> o
 
-let add_child (obj:git_object) = function
-  | Leaf -> Node (obj,[])
-  | Node (o,lst) -> Node (o,(Node (obj,[])::lst))
+let add_child obj = function
+  | Leaf -> Node (obj, [])
+  | Node (o, lst) -> Node (o, (Node (obj, [])::lst))
 
 let rec size = function 
   | Leaf -> raise (EmptyTreeException "Empty tree does not have value")
@@ -82,13 +82,12 @@ let rec tree_children_content (lst : t list) : string =
                         (hash_str (tree_children_content children)) 
                         ^ " " ^ s ^ "\n" 
                         ^ (tree_children_content t)
-     | File s -> "File " ^ 
-                 (hash_str 
-                    ("Blob "^(string_of_git_object (value (List.hd children))))) 
+     | File s -> "File " ^ (hash_str (
+         "Blob " ^ (string_of_git_object (root (List.hd children))))) 
                  ^ " " ^ s ^ "\n" ^ (tree_children_content t) 
      | _ -> raise (InvalidContentException 
                      ("Tree_Object can only have children with " ^
-                      "value of type Tree_Object or File ")))
+                      "value of type Tree_Object or File")))
   | h::t -> raise 
               (InvalidContentException "tree_children should not have leaves")
 
@@ -123,8 +122,8 @@ let rec hash_file_subtree = function
                          (tree_children_content lst);
       List.hd (List.map hash_file_subtree lst); 
     | File s -> write_hash_contents
-                  ("Blob " ^ string_of_git_object (value (List.hd lst)))
-                  ("Blob " ^ string_of_git_object (value (List.hd lst)))
+                  ("Blob " ^ string_of_git_object (root (List.hd lst)))
+                  ("Blob " ^ string_of_git_object (root (List.hd lst)))
     | _ -> raise (InvalidContentException "file_subtree can only have nodes
       with value of type Tree_object or File")
 
@@ -132,8 +131,8 @@ let rec pp_git_tree ?acc:(acc = "") (tree:t) =
   let rec pp_git_tree_children ?acc:(acc = "") = function
     | [] -> acc
     | Leaf::t -> failwith "There should be no leaves in GitTree"
-    | Node (o, lst)::t -> pp_git_tree_children 
-                            ~acc:(acc ^ pp_git_tree (Node(o,lst))) t
+    | Node (o, lst)::t -> pp_git_tree_children t
+                            ~acc:(acc ^ pp_git_tree (Node(o,lst)))
   in 
   match tree with
   | Leaf -> ""
