@@ -96,8 +96,7 @@ let hash_of_tree (tree: t) : string =
   | Node (o, lst) ->
     match o with
     | Tree_Object s -> hash_str (tree_children_content lst)
-    | _ -> failwith "Unimplemented in accordance with DRY" 
-
+    | _ -> failwith "Unimplemented in accordance with DRY"
 
 (** [write_hash_contents unhashed_adr file_content] writes file_content to 
     the hash of unhashed_adr in the .git-ml/objects hashtable
@@ -144,5 +143,15 @@ let rec pp_git_tree ?acc:(acc = "") (tree:t) =
     | Blob s -> acc ^ "Blob " ^ s ^ "\n" ^ (pp_git_tree_children lst)
     | _ -> acc ^ "pretty printing not supported for this node" ^ 
            (pp_git_tree_children lst)
+
+let rec mem_file (hash : string) (t : t) : bool =
+  match t with
+  | Leaf -> false
+  | Node (obj, lst) -> match obj with
+    | Tree_Object s | File s | Commit s | Ref s -> 
+      List.fold_left (fun acc t -> mem_file hash t) false lst
+    | Blob s -> let obj_hash = ("Blob " ^ s) |> hash_str in
+      if obj_hash = hash then true
+      else List.fold_left (fun acc t -> mem_file hash t) false lst
 
 

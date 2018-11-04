@@ -22,3 +22,8 @@ val read_file : ?s:string -> in_channel -> string
 (** [read_dir handle s] reads the directory [dir] and outputs the filenames to
     [s], it closes [handle] after reaching the end of file. *)
 val read_dir_filenames : Unix.dir_handle -> string -> string
+
+(** [is_outside_path path] checks to ensure that the given path is not
+    anything starting with '/' or '..'
+    Raises: [Sys_error] if the path starts with '/' or '..'  *)
+val is_outside_path : string -> unit

@@ -26,3 +26,7 @@ let rec read_dir_filenames handle s =
       read_dir_filenames handle (s ^ cur_file ^ "\n")
   with
   | End_of_file -> handle |> Unix.closedir; s
+
+let is_outside_path path =
+  if Str.first_chars path 2 = ".." || Str.first_chars path 1 = "/" 
+  then raise (Sys_error ("fatal: '" ^ path ^ "' is outside repository."))

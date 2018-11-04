@@ -75,3 +75,7 @@ val string_of_git_object: git_object -> string
 
 (** [pp_git_tree ?acc tree] is the pretty printed string of tree t *)
 val pp_git_tree: ?acc:string -> t -> string
+
+(** [mem_file hash t] is true if the blob object with hash [hash] is inside
+    GitTree [t], false otherwise *)
+val mem_file: string -> t -> bool

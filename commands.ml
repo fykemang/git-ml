@@ -13,7 +13,9 @@ let init () = begin
     let curr_dir = Unix.getcwd () in
     mkdir ".git-ml" 0o700;
     chdir ".git-ml";
-    ignore (openfile "HEAD" [O_WRONLY; O_CREAT] 0o666);
+    let head_out = open_out_gen [Open_creat; Open_wronly] 0o700 "HEAD" in
+    output_string head_out "refs/heads/master";
+    close_out head_out;
     mkdir "objects" 0o700;
     mkdir "info" 0o700;
     mkdir "refs" 0o700;
@@ -225,12 +227,12 @@ let read_idx () : string StrMap.t =
     if s <> "" then let entry = String.split_on_char ' ' s in
       StrMap.add (List.nth entry 0) (List.nth entry 1) acc
     else acc in
-  if curr_idx = [""]
-  then StrMap.empty
+  if curr_idx = [""] then StrMap.empty
   else List.fold_left fold_helper StrMap.empty curr_idx
 
 let add address =
   try
+    is_outside_path address;
     let curr_idx = read_idx () in
     let new_idx = if Sys.is_directory address
       then add_dir_files address ~idx:curr_idx
@@ -266,37 +268,37 @@ let tag_assign str =
     hash_adr. 
     Requires: [hash_adr] is a valid hash address to a Tree_Object *)
 let rec tree_hash_to_git_tree ?name:(name = "") hash_adr =
-  let rec helper (lst:string list) acc : GitTree.t list =
+  let rec helper ?acc:(acc = []) (lst : string list) : GitTree.t list =
     match lst with
     | [] -> acc
-    | h::tail -> match String.split_on_char ' ' h with 
+    | h::tl -> match String.split_on_char ' ' h with 
       | [] -> failwith "Error, helper operating on empty string"
-      | h::t when h = "" -> helper tail acc 
-      | h::t when h = "Tree_Object" -> 
-        helper tail ((tree_hash_to_git_tree (List.nth t 0) ~name:(List.nth t 1))::acc)
-      | h::t when h = "File" -> 
-        helper tail (Node ((File (List.nth t 1)), 
-                           ((helper ((cat_string (List.nth t 0)) 
-                                     |> (String.split_on_char '\n')) []
-                            )))::acc)
+      | h::t when h = "" -> helper tl ~acc:acc
+      | h::t when h = "Tree_Object" ->
+        helper tl ~acc:((tree_hash_to_git_tree (List.nth t 0) 
+                           ~name:(List.nth t 1))::acc)
+      | h::t when h = "File" ->
+        helper tl ~acc:(Node (File (List.nth t 1), 
+                              helper ((cat_string (List.nth t 0)) 
+                                      |> (String.split_on_char '\n')))::acc)
       | h::t when h = "Blob" -> 
-        Node ((
-            Blob (
-              let s = List.fold_left (fun a b -> a ^ " " ^ b) "" t in  
-              String.sub s 1 (String.length s - 1))),[]
-          )::acc
-      | h::t -> failwith
-                  ("helper only operates on Tree_Object, File or Blob," ^
-                   "attempting to operate on:" ^ h ^
-                   "| with rest of string:" ^
-                   (List.fold_left (fun a b -> a ^ " " ^ b) "" t)) in
+        Node (Blob (String.concat "\n" ((String.concat " " t)::tl)), [])::acc
+      | h::t -> failwith ("helper only operates on Tree_Object, File or Blob,\
+                           attempting to operate on: " ^ h ^ "| with rest of string:"
+                          ^ (List.fold_left (fun a b -> a ^ " " ^ b) "" t)) in
   let spl = cat_string hash_adr |> String.split_on_char '\n' in
-  let children = helper spl [] in Node (Tree_Object name, children)
+  let children = helper spl in Node (Tree_Object name, children)
+
+let read_head () = 
+  let in_ch = open_in ".git-ml/HEAD" in
+  try
+    input_line in_ch
+  with End_of_file -> close_in in_ch; ""
 
 let current_head_to_git_tree () =
-  let commit_path = input_line (open_in ".git-ml/HEAD") in
+  let commit_path = read_head () in
   if not (Sys.file_exists (".git-ml/" ^ commit_path))
-  then raise (FileNotFound ("No such file: " ^ (".git-ml/" ^ commit_path)))
+  then empty
   else let commit_hash = input_line (open_in (".git-ml/" ^ commit_path)) in
     cat_string commit_hash |> String.split_on_char '\n' |> List.hd 
     |> String.split_on_char ' ' |> List.tl |> List.hd |> tree_hash_to_git_tree
@@ -367,23 +369,25 @@ let rec print_list = function
 let status () = 
   let lst = status1 () in print_list lst
 
-let rec mem_file (t : GitTree.t) (hash : string) : bool = 
-  match t with
-  | Leaf -> failwith "Should not have leaf!"
-  | Node (obj, lst) -> if string_of_git_object obj = hash then true
-    else List.fold_left (fun acc t -> mem_file t hash) false lst
-
 let rm address =
   try
+    is_outside_path address;
     let curr_idx = read_idx () in
-    let curr_tree = current_head_to_git_tree () in
     let file_hash =  "Blob " ^ (address |> open_in |> read_file) |> hash_str in
-    print_endline (string_of_bool (mem_file curr_tree file_hash));
-    (* Sys.remove address; *)
+    let curr_tree = current_head_to_git_tree () in
+    if StrMap.find address curr_idx = file_hash && mem_file file_hash curr_tree 
+    then
+      begin
+        wr_to_idx (StrMap.remove address curr_idx);
+        Sys.remove address;
+      end
+    else
+      print_endline
+        ("error: the following file has changes staged in the index: " ^ address)
   with
   | Unix_error (ENOENT, name, ".git-ml") ->
     print_endline ("fatal: Not a git-ml repository" ^
                    " (or any of the parent directories): .git-ml")
-  | Unix_error (ENOENT, name, ".git-ml") ->
-    print_endline ("fatal: Not a git-ml repository" ^
-                   " (or any of the parent directories): .git-ml")
+  | Sys_error e -> print_endline e
+  | Not_found -> print_endline ("fatal: " ^ address ^ " did not match any \
+    stored or tracked files.")

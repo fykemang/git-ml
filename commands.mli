@@ -32,7 +32,9 @@ val ls_tree : string -> string
     where /git-ml is contained *)
 val add : string -> unit
 
-(** [rm address] deletes the requested file from the index *)
+(** [rm address] deletes file [address] from the working directory
+    and the staging area
+    Requires: The file does not have any uncommitted changes staged. *)
 val rm : string -> unit
 
 (** [tag] pretty prints all the tags that have been added, it prints nothing if
