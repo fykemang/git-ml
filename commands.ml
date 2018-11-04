@@ -207,7 +207,7 @@ let rec add_dir_files ?idx:(idx = StrMap.empty)
 (** [wr_to_idx idx] writes [idx] to the index *)
 let wr_to_idx (idx : string StrMap.t) : unit = 
   chdir ".git-ml";
-  let out_ch = open_out_gen [Open_wronly; Open_creat] 0o700 "index" in
+  let out_ch = open_out "index" in
   let idx_str = StrMap.fold
       (fun file hash acc  -> (String.concat " " [file; hash])::acc) idx [] 
                 |> List.sort compare |> String.concat "\n" in
@@ -281,8 +281,11 @@ let rec tree_hash_to_git_tree ?name:(name = "") hash_adr =
         helper tl ~acc:(Node (File (List.nth t 1), 
                               helper ((cat_string (List.nth t 0)) 
                                       |> (String.split_on_char '\n')))::acc)
-      | h::t when h = "Blob" -> 
-        Node (Blob (String.concat "\n" ((String.concat " " t)::tl)), [])::acc
+      | h::t when h = "Blob" -> begin
+          match t with
+          | [""] -> Node (Blob "", [])::acc
+          | _ -> Node (Blob (String.concat "\n" ((String.concat " " t)::tl)), [])::acc
+        end
       | h::t -> failwith ("helper only operates on Tree_Object, File or Blob,\
                            attempting to operate on: " ^ h ^ "| with rest of string:"
                           ^ (List.fold_left (fun a b -> a ^ " " ^ b) "" t)) in
@@ -389,5 +392,5 @@ let rm address =
     print_endline ("fatal: Not a git-ml repository" ^
                    " (or any of the parent directories): .git-ml")
   | Sys_error e -> print_endline e
-  | Not_found -> print_endline ("fatal: " ^ address ^ " did not match any \
-    stored or tracked files.")
+  | Not_found -> print_endline ("fatal: " ^ address ^ 
+                                " did not match any stored or tracked files.")
