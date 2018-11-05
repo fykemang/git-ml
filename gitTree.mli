@@ -7,11 +7,11 @@ type git_object =
   | Commit of string
   | Ref of string
 
-(** [t] is the type of a git tree**)
+(** [t] is the type of a git tree *)
 type t = Leaf | Node of git_object * t list 
 
 (** [value t] gives the [git_object] at the root node of [GitTree.t]. *)
-val value: t -> git_object 
+val root: t -> git_object
 
 (** [empty] is the empty [GitTree]. *)
 val empty : t
@@ -73,5 +73,12 @@ val hash_of_tree: t -> string
     [string_of_git_object (File "test.txt")] would evaluate to ["test.txt"]. *)
 val string_of_git_object: git_object -> string
 
-(** [pp_git_tree "" tree] is the pretty printed string of tree t *)
-val pp_git_tree: string -> t -> string
+(** [pp_git_tree ?acc tree] is the pretty printed string of tree t *)
+val pp_git_tree: ?acc:string -> t -> string
+
+(** [hash_of_git_object obj] is the hash of a given [git_object] obj *)
+val hash_of_git_object: git_object -> string
+
+(** [mem_file hash t] is true if the blob object with hash [hash] is inside
+    GitTree [t], false otherwise *)
+val mem_hash: string -> t -> bool

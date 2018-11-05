@@ -118,14 +118,14 @@ let cmds_to_table (cmds : cmd list) =
 
 (** [find_cmd_opts cmd cmds] are the options of a command [cmd]
     Raises: [Parse_error] if the command does not exist in [cmds] *)
-let find_cmd_opts (cmd : string) cmds = 
+let find_cmd_opts (cmd : string) cmds =
   match Hashtbl.find_opt cmds cmd with
   | None -> raise (Parse_error (Cmd_not_found, "command not found"))
   | Some (usage, default, opts) -> opts
 
 (** [find_cmd_usage cmd cmds] is the usage message of a command [cmd]
     Raises: [Parse_error] if the command does not exist in [cmds] *)
-let find_cmd_usage (cmd : string) cmds = 
+let find_cmd_usage (cmd : string) cmds =
   match Hashtbl.find_opt cmds cmd with
   | None -> raise (Parse_error (Cmd_not_found, "command not found"))
   | Some (usage, default, opts) -> usage
