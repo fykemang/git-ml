@@ -42,7 +42,7 @@ let cat s =
         (".git-ml/objects/" ^ fold_header ^ Filename.dir_sep ^ fold_footer) in
     let content = read_file ic in
     print_endline content;
-  with e -> print_endline "Read Issue" 
+  with Sys_error e -> print_endline "File not found due to invalid hash."  
 
 (** [cat_string s] is the content of the file at hash_adr s*)
 let cat_string s = 
@@ -161,7 +161,7 @@ let add_file ?idx:(idx = StrMap.empty) (file : string) : StrMap.key StrMap.t =
   let file_content = file |> open_in |> read_file in
   let file_content_hash = Util.hash_str ("Blob " ^ file_content) in
   let file_name = if Str.first_chars file 2 = "./" 
-    then Str.string_after file 2 
+    then Str.string_after file 2
     else file in
   add_file_to_tree file_name file_content empty |> hash_file_subtree;
   StrMap.update file_name (fun opt_v -> Some file_content_hash) idx
