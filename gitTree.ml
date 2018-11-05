@@ -38,13 +38,13 @@ let rec size = function
 (** [get_subdirectory_helper subdirectory lst] is the [GitTree] constructed 
     from [subdirectory] and [lst]. *)
 let rec get_subdirectory_helper (subdirectory:string) = function
-  | [] -> Node(Tree_Object (subdirectory),[])
-  | h::t when (equal_node_value h (Node (Tree_Object subdirectory, []))) -> h
-  | h::t -> (get_subdirectory_helper subdirectory t) 
+  | [] -> Node (Tree_Object (subdirectory), [])
+  | h::t when equal_node_value h (Node (Tree_Object subdirectory, [])) -> h
+  | h::t -> get_subdirectory_helper subdirectory t 
 
 let get_subdirectory_tree (subdirectory:string) = function
-  | Leaf ->  Node(Tree_Object (subdirectory),[])
-  | Node (_,lst) -> get_subdirectory_helper subdirectory lst   
+  | Leaf ->  Node (Tree_Object (subdirectory), [])
+  | Node (_, lst) -> get_subdirectory_helper subdirectory lst   
 
 (** [add_subtree_to_list tree] ensures child lists do not have duplicate 
     children. *)
@@ -55,15 +55,15 @@ let rec add_subtree_to_list tree = function
 
 let add_child_tree (subtree : t) = function
   | Leaf -> subtree
-  | Node(o, lst) -> Node(o, (add_subtree_to_list subtree lst))
+  | Node (o, lst) -> Node(o, (add_subtree_to_list subtree lst))
 
 let add_file_to_tree (filename:string) (file_content:string) = function
   | Leaf -> add_child_tree (Node ((File filename), 
                                   (Node ((Blob file_content),[])::[]))) empty 
   | Node (o, lst) -> add_child_tree
                        (Node ((File filename), 
-                              (Node ((Blob file_content),[])::[]))) 
-                       (Node (o,lst))
+                              (Node ((Blob file_content), [])::[]))) 
+                       (Node (o, lst))
 
 let string_of_git_object = function
   | Tree_Object s -> s
@@ -75,18 +75,19 @@ let string_of_git_object = function
 let rec tree_children_content (lst : t list) : string =
   match lst with
   | [] -> ""
-  | Node (o,children)::t -> 
-    (match o with 
-     | Tree_Object s -> "Tree_Object " ^ 
-                        (hash_str (tree_children_content children)) 
-                        ^ " " ^ s ^ "\n" 
-                        ^ (tree_children_content t)
-     | File s -> "File " ^ (hash_str (
-         "Blob " ^ (string_of_git_object (root (List.hd children))))) 
-                 ^ " " ^ s ^ "\n" ^ (tree_children_content t) 
-     | _ -> raise (InvalidContentException 
-                     ("Tree_Object can only have children with " ^
-                      "value of type Tree_Object or File")))
+  | Node (o,children)::t -> begin
+      match o with 
+      | Tree_Object s -> "Tree_Object " ^ 
+                         (hash_str (tree_children_content children)) 
+                         ^ " " ^ s ^ "\n" 
+                         ^ (tree_children_content t)
+      | File s -> "File " ^ (hash_str (
+          "Blob " ^ (string_of_git_object (root (List.hd children))))) 
+                  ^ " " ^ s ^ "\n" ^ (tree_children_content t) 
+      | _ -> raise (InvalidContentException 
+                      ("Tree_Object can only have children with " ^
+                       "value of type Tree_Object or File"))
+    end
   | h::t -> raise 
               (InvalidContentException "tree_children should not have leaves")
 
@@ -157,5 +158,3 @@ let rec mem_hash (hash : string) (t : t) : bool =
   | Node (obj, lst) -> 
     if hash_of_git_object obj = hash then true
     else List.fold_left (fun acc t -> mem_hash hash t) false lst
-
-

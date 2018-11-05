@@ -34,11 +34,12 @@ let init () = begin
     print_endline (file ^ " already exists.");
 end
 
-let cat s = 
+let cat s =
   let fold_header = String.sub s 0 2  in
   let fold_footer = String.sub s 2 (String.length s - 2) in
   try
-    let ic = open_in (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
+    let ic = open_in 
+        (".git-ml/objects/" ^ fold_header ^ Filename.dir_sep ^ fold_footer) in
     let content = read_file ic in
     print_endline content;
   with e -> print_endline "Read Issue" 
@@ -48,9 +49,11 @@ let cat_string s =
   let fold_header = String.sub s 0 2  in
   let fold_footer = String.sub s 2 (String.length s - 2) in
   try
-    let ic = open_in (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
+    let ic = open_in 
+        (".git-ml/objects/" ^ fold_header ^ Filename.dir_sep ^ fold_footer) in
     try 
-      let content = read_file ic in content; 
+      let content = read_file ic in
+      content;
     with e -> failwith ("cat_string read error on .git-ml/objects/" 
                         ^ fold_header ^ "/" ^ fold_footer)
   with e -> raise (FileNotFound 
@@ -80,12 +83,10 @@ let add_file_to_tree name content (tree : GitTree.t) =
   let rec add_file_to_tree_helper name_lst content (tree : GitTree.t) = 
     match name_lst with
     | [] -> tree
-    | h::[] -> GitTree.add_file_to_tree h content tree
-    | dir::t -> GitTree.add_child_tree 
-                  ((GitTree.get_subdirectory_tree (dir) tree) 
-                   |> add_file_to_tree_helper t content) tree   
-  in
-  add_file_to_tree_helper (String.split_on_char '/' name) content tree 
+    | h::[] -> add_file_to_tree h content tree
+    | dir::t -> add_child_tree (get_subdirectory_tree dir tree
+                                |> add_file_to_tree_helper t content) tree   
+  in add_file_to_tree_helper (String.split_on_char '/' name) content tree 
 
 (** [file_list_to_tree file_list] is the [GitTree] constructed from 
     [file_list]. *)
@@ -109,8 +110,8 @@ let last_commit_hash (ic_ref:in_channel) =
 
 let commit 
     (message : string)
-    (branch : string) 
-    (file_list : string StrMap.t) 
+    (branch : string)
+    (file_list : string StrMap.t)
     (start_tree : GitTree.t) : unit = 
   let tree = file_list_to_tree file_list ~tree:start_tree in
   let commit_string =  "Tree_Object " ^ (GitTree.hash_of_tree (tree))
@@ -128,7 +129,7 @@ let commit
   try
     let in_ref = open_in (".git-ml/logs/refs/heads/" ^ branch) in  
     let last_hash = last_commit_hash in_ref in
-    let oc_ref = open_out_gen [Open_append] 0o666 
+    let oc_ref = open_out_gen [Open_append] 0o666
         (".git-ml/logs/refs/heads/" ^ branch) in
     output_string oc_ref ("\n" ^ last_hash ^ " " ^ (hash_str commit_string) 
                           ^ " Root Author <root@3110.org> commit: " ^ message);
@@ -194,7 +195,8 @@ let rec add_dir_files ?idx:(idx = StrMap.empty) (address : string) =
     with End_of_file -> closedir dir; idx in
   address |> opendir |> parse_dir ~idx:idx
 
-(** [wr_to_idx idx] writes [idx] to the index *)
+(** [wr_to_idx idx] writes a mapping from filenames to
+    file hashes [idx] to the index file *)
 let wr_to_idx (idx : string StrMap.t) : unit = 
   chdir ".git-ml";
   let out_ch = open_out "index" in
@@ -210,9 +212,9 @@ let wr_to_idx (idx : string StrMap.t) : unit =
     to content hash *)
 let read_idx () : string StrMap.t =
   chdir ".git-ml";
-  let in_ch = open_in_gen [Open_creat] 0o700 "index" in
+  let curr_idx = open_in_gen [Open_creat] 0o700 "index" 
+                 |> read_file |> String.split_on_char '\n' in
   chdir "..";
-  let curr_idx = read_file in_ch |> String.split_on_char '\n' in
   let fold_helper acc s =
     if s <> "" then let entry = String.split_on_char ' ' s in
       StrMap.add (List.nth entry 0) (List.nth entry 1) acc
@@ -298,10 +300,10 @@ let current_head_to_git_tree () =
     |> String.split_on_char ' ' |> List.tl |> List.hd |> tree_hash_to_git_tree
 
 (** [idx_to_content ()] is a mapping from file name to file content based on
-    index/git-ml file *)
-let idx_to_content () = StrMap.fold
-    (fun file hash acc ->
-       StrMap.add file (hash |> cat_string |> remove_object_tag "Blob") acc) 
+    index/git-ml *)
+let idx_to_content () =
+  StrMap.fold (fun file hash acc ->
+      StrMap.add file (hash |> cat_string |> remove_object_tag "Blob") acc) 
     (read_idx ()) StrMap.empty
 
 let commit_command message branch =

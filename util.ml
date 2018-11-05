@@ -6,18 +6,16 @@ let hash_str s = s |> Digest.string |> Digest.to_hex
 
 let print_hash_str s = print_endline (hash_str s)
 
-let remove_object_tag tag s =
-  match String.split_on_char ' ' s with
-  | [] -> s
-  | h::t when h = tag -> String.concat " " t
-  | h::t -> failwith "Trying to incompatible header"
+let remove_object_tag tag s = 
+Str.replace_first (Str.regexp_string (tag ^ " ")) "" s
 
 let rec read_file ?s:(s = "") file_chnl =
   try
     let cur_line = input_line file_chnl in
     read_file file_chnl ~s: (s ^ cur_line ^ "\n")
   with
-  | End_of_file -> close_in file_chnl; s
+  | End_of_file -> close_in file_chnl;
+    if s = "\n" then "" else s
 
 let rec read_dir_filenames handle s =
   try
