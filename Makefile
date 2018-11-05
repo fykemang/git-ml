@@ -38,6 +38,6 @@ clean:
 	rm -rf doc.public doc.private .git-ml search_src.zip
 
 zip:
-	zip git-ml_src.zip *.ml* _tags Makefile
+	zip git-ml_src.zip *.ml* _tags git-ml test_routine Makefile
 
 rebuild: clean build
