@@ -10,6 +10,22 @@ let t2 = GitTree.Node (File "f2", [b2])
 let t3 = GitTree.Node (File "f3", [b3])
 let treetmp = Node (Tree_Object ".", [t1; t2])
 let tree = add_child_tree t3 treetmp
+let pre_blob_1 = "Blob One"
+let post_blob_1 = "One"
+let pre_blob_2 = "Blob One Two"
+let post_blob_2 = "One Two"
+let pre_blob_3 = "Blob One Two \n One Two"
+let post_blob_3 = "One Two \n One Two"
+let pre_blob_4 = "Blob "
+let post_blob_4 = ""
+
+let make_remove_blob_test
+    (name : string)
+    (input: string)
+    (expected_output : string) : test =
+  name >:: (fun _ ->
+      assert_equal expected_output (Util.remove_blob input) 
+        ~printer: (fun x -> x))
 
 let make_size_test
     (name : string)
@@ -46,8 +62,16 @@ let tree_tests = [
   make_value_test "treeval" tree (Tree_Object ".");
 ]
 
-let suite = "TEST SUITE" >::: List.flatten [
-  tree_tests
+let remove_blob_tests = [
+  make_remove_blob_test "standard" pre_blob_1 post_blob_1;
+  make_remove_blob_test "two words" pre_blob_2 post_blob_2;
+  make_remove_blob_test "newlines" pre_blob_3 post_blob_3;
+  make_remove_blob_test "just header" pre_blob_4 post_blob_4;
 ]
+
+let suite = "TEST SUITE" >::: List.flatten [
+    tree_tests;
+    remove_blob_tests
+  ]
 
 let _ = run_test_tt_main suite

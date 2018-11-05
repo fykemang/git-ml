@@ -1,0 +1,66 @@
+#!/bin/sh
+make rebuild
+if [ -e bash_test ]; then
+rm -r bash_test 
+fi
+echo " "
+echo "----Starting Tests----"
+echo " "
+./main.byte init
+mkdir bash_test 
+echo "some cool text" >> newfile.txt
+cd bash_test
+mkdir sub 
+cd sub
+mkdir sub
+cd sub
+echo "This is deep in a directory. This is 3110." >> subfile.txt
+cd ../../..
+./main.byte add bash_test
+./main.byte commit -m "bash commit"
+if ./main.byte log | grep -q '00000000000000000000000000000000 4bcf7c7642adf781f1492a52a9802143'; then
+echo "----TEST PASS----"
+else 
+echo "!----LOG TEST FAILURE----!" 
+fi
+echo "This is from a bash-script. This is 3110" >> bash_test/shallowfile.txt
+./main.byte add bash_test
+if cat .git-ml/index | grep -q 'shallowfile.txt'; then
+echo "----TEST PASS----"
+else 
+echo "!----INDEX TEST FAILURE----!" 
+fi
+./main.byte commit -m "second bash commit"
+if grep -q -r 'This is from a bash-script.' .git-ml/objects; then
+echo "----TEST PASS----"
+else 
+echo "!----OBJECTS TEST FAILURE----!" 
+fi
+
+if ./main.byte log | grep -q '4bcf7c7642adf781f1492a52a9802143 78fbc36a5f1ef26fb0cbf3a4f05a3a85'; then
+echo "----TEST PASS----"
+else 
+echo "!----LOG TEST 2 FAILURE----!" 
+fi
+
+if cat .git-ml/refs/heads/master | grep -q '78fbc36a5f1ef26fb0cbf3a4f05a3a85'; then
+echo "----TEST PASS----"
+else 
+echo "!----HEAD CHECK TEST FAILURE----!" 
+fi
+echo "This is overwritten. This is 3110" >> bash_test/sub/sub/subfile.txt 
+./main.byte add bash_test
+./main.byte commit -m "overwrite test"
+if ./main.byte cat-file e924c1bf9f9489f16ff4272087b5d4ff | grep -q '6cc2f18042c2fbeb880c077fbcb2cc0c'; then
+echo "----TEST PASS----"
+else 
+echo "!----CAT FILE OVERWRITE TEST FAILURE----!" 
+fi
+
+if ./main.byte log | grep -q '78fbc36a5f1ef26fb0cbf3a4f05a3a85 d537689c1449b79236d457665d4a7cf9'; then
+echo "----TEST PASS----"
+else 
+echo "!----LOG TEST 3 FAILURE----!" 
+fi
+
+

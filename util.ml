@@ -15,7 +15,8 @@ let rec read_file ?s:(s = "") file_chnl =
     read_file file_chnl ~s: (s ^ cur_line ^ "\n")
   with
   | End_of_file -> close_in file_chnl;
-    if s = "\n" then "" else s
+    if (remove_object_tag "Blob" s) = "\n" 
+    then "" else s
 
 let rec read_dir_filenames handle s =
   try

@@ -170,7 +170,7 @@ let add_file ?idx:(idx = StrMap.empty) (file : string) : StrMap.key StrMap.t =
     if it does not then recurse through the file system back to the directory
     where it exists
     Requires: The current directory is a child folder of the directory
-              where ".git-ml" exists *)
+          where ".git-ml" exists *)
 let rec to_base_dir () : unit =
   try ignore (Sys.is_directory ".git-ml") with 
     Sys_error s -> chdir "../"; to_base_dir ()
