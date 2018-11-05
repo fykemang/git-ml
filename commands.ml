@@ -51,7 +51,7 @@ let cat_string s =
     let ic = open_in (".git-ml/objects/" ^ fold_header ^ "/" ^ fold_footer) in
     try 
       let content = read_file ic in content; 
-    with e -> failwith ("cat_string read error on" ^ ".git-ml/objects/" 
+    with e -> failwith ("cat_string read error on .git-ml/objects/" 
                         ^ fold_header ^ "/" ^ fold_footer)
   with e -> raise (FileNotFound 
                      ("file not found: " ^ fold_header ^ "/" ^ fold_footer))
@@ -78,7 +78,7 @@ let log branch =
     content [content] to tree [tree]. *)
 let add_file_to_tree name content (tree : GitTree.t) =
   let rec add_file_to_tree_helper name_lst content (tree : GitTree.t) = 
-    match name_lst with 
+    match name_lst with
     | [] -> tree
     | h::[] -> GitTree.add_file_to_tree h content tree
     | dir::t -> GitTree.add_child_tree 
@@ -93,14 +93,6 @@ let file_list_to_tree ?tree:(tree = GitTree.empty_tree_object)
     (file_list : string StrMap.t) : GitTree.t =
   StrMap.fold (fun file content acc -> add_file_to_tree file content acc) 
     file_list tree
-
-(** [hash_of_git_object obj] is the string hash of a given [git_object] obj *)
-let hash_of_git_object = function
-  | Tree_Object s -> failwith "Invalid use of function, use hash_of_tree"
-  | Blob s -> hash_str ("Blob " ^ s)
-  | File s -> hash_str ("File " ^ s)
-  | Commit s -> hash_str ("Commit " ^ s)
-  | Ref s -> hash_str ("Ref " ^ s)
 
 (** [last_commit_hash ic_ref] gives the last commit for a given in_channel 
     [ic_ref] to a valid ref log file. 
@@ -123,8 +115,8 @@ let commit
   let tree = file_list_to_tree file_list ~tree:start_tree in
   let commit_string =  "Tree_Object " ^ (GitTree.hash_of_tree (tree))
                        ^ "\nauthor Root Author <root@3110.org> " ^
-                       (hash_str "root@3110.org") ^ "\n" ^ 
-                       "committer Root Author <root@3110.org> " ^
+                       (hash_str "root@3110.org") ^ 
+                       "\ncommitter Root Author <root@3110.org> " ^
                        (hash_str "root@3110.org") ^ "\n\n" ^ 
                        message in
   write_hash_contents commit_string commit_string;
@@ -135,7 +127,7 @@ let commit
   output_string oc_HEAD ("refs/heads/" ^ branch);
   try
     let in_ref = open_in (".git-ml/logs/refs/heads/" ^ branch) in  
-    let last_hash = last_commit_hash in_ref in 
+    let last_hash = last_commit_hash in_ref in
     let oc_ref = open_out_gen [Open_append] 0o666 
         (".git-ml/logs/refs/heads/" ^ branch) in
     output_string oc_ref ("\n" ^ last_hash ^ " " ^ (hash_str commit_string) 
@@ -185,10 +177,8 @@ let rec to_base_dir () : unit =
 (** [hash_dir_files address] takes the address [address] to a directory
     and hashes each file and directory within and writes it to .git-ml/objects
     and .git-ml/index using [add_file] *)
-let rec add_dir_files ?idx:(idx = StrMap.empty) 
-    (address : string) =
-  let rec parse_dir ?idx:(idx = StrMap.empty) 
-      (dir : Unix.dir_handle) =
+let rec add_dir_files ?idx:(idx = StrMap.empty) (address : string) =
+  let rec parse_dir ?idx:(idx = StrMap.empty) (dir : Unix.dir_handle) =
     try
       let n = readdir dir in
       if Filename.check_suffix n "." || Filename.check_suffix n ".git-ml" 
@@ -284,7 +274,8 @@ let rec tree_hash_to_git_tree ?name:(name = "") hash_adr =
       | h::t when h = "Blob" -> begin
           match t with
           | [""] -> Node (Blob "", [])::acc
-          | _ -> Node (Blob (String.concat "\n" ((String.concat " " t)::tl)), [])::acc
+          | _ -> Node (Blob (String.concat "\n" ((String.concat " " t)::tl))
+                      , [])::acc
         end
       | h::t -> failwith ("helper only operates on Tree_Object, File or Blob,\
                            attempting to operate on: " ^ h ^ "| with rest of string:"
@@ -308,13 +299,13 @@ let current_head_to_git_tree () =
 
 (** [idx_to_content ()] is a mapping from file name to file content based on
     index/git-ml file *)
-let idx_to_content () = StrMap.fold 
-    (fun file hash acc -> 
+let idx_to_content () = StrMap.fold
+    (fun file hash acc ->
        StrMap.add file (hash |> cat_string |> remove_object_tag "Blob") acc) 
     (read_idx ()) StrMap.empty
 
 let commit_command message branch =
-  try 
+  try
     let commit_path = input_line (open_in ".git-ml/HEAD") in
     if not (Sys.file_exists (".git-ml/" ^ commit_path))
     then commit message branch (idx_to_content ()) GitTree.empty_tree_object
@@ -366,7 +357,7 @@ let rec status1_help address acc tree =
 let status1 () = status1_help "" [] (current_head_to_git_tree ())
 
 let rec print_list = function 
-  |[] -> ()
+  | [] -> ()
   | h::t -> print_endline h ; print_list t
 
 let status () = 
@@ -378,7 +369,7 @@ let rm address =
     let curr_idx = read_idx () in
     let file_hash =  "Blob " ^ (address |> open_in |> read_file) |> hash_str in
     let curr_tree = current_head_to_git_tree () in
-    if StrMap.find address curr_idx = file_hash && mem_file file_hash curr_tree 
+    if StrMap.find address curr_idx = file_hash && mem_hash file_hash curr_tree 
     then
       begin
         wr_to_idx (StrMap.remove address curr_idx);

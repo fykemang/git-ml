@@ -144,14 +144,18 @@ let rec pp_git_tree ?acc:(acc = "") (tree:t) =
     | _ -> acc ^ "pretty printing not supported for this node" ^ 
            (pp_git_tree_children lst)
 
-let rec mem_file (hash : string) (t : t) : bool =
+let hash_of_git_object = function
+  | Tree_Object s -> hash_str ("Tree_Object " ^ s)
+  | Blob s -> hash_str ("Blob " ^ s)
+  | File s -> hash_str ("File " ^ s)
+  | Commit s -> hash_str ("Commit " ^ s)
+  | Ref s -> hash_str ("Ref " ^ s)
+
+let rec mem_hash (hash : string) (t : t) : bool =
   match t with
   | Leaf -> false
-  | Node (obj, lst) -> match obj with
-    | Tree_Object s | File s | Commit s | Ref s -> 
-      List.fold_left (fun acc t -> mem_file hash t) false lst
-    | Blob s -> let obj_hash = ("Blob " ^ s) |> hash_str in
-      if obj_hash = hash then true
-      else List.fold_left (fun acc t -> mem_file hash t) false lst
+  | Node (obj, lst) -> 
+    if hash_of_git_object obj = hash then true
+    else List.fold_left (fun acc t -> mem_hash hash t) false lst
 
 

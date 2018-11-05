@@ -10,7 +10,7 @@ let remove_object_tag tag s =
   match String.split_on_char ' ' s with
   | [] -> s
   | h::t when h = tag -> String.concat " " t
-  | h::t -> failwith "Trying to remove_blob on string containing no Blob header"
+  | h::t -> failwith "Trying to incompatible header"
 
 let rec read_file ?s:(s = "") file_chnl =
   try
