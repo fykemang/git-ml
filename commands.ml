@@ -347,12 +347,12 @@ let compare_files blob_obj file_name =
   let len' = len - 2 in
   let str = String.sub file_name 2 len' in
   let content = read_file (str |> open_in) in
-  hash_str "Blob " ^ content = hash_of_git_object blob_obj
+  hash_str "Blob " ^ content = hash_str "Blob " ^ blob_obj
 
 let rec compare_file_blob prefix f l acc = 
   match l with
   | [Node (Blob b, l')] -> begin
-      if compare_files (Blob b) (prefix ^ "/" ^ f) 
+      if compare_files b (prefix ^ "/" ^ f) 
       then acc else f::acc
     end
   | _ -> failwith "A file must have one and only one blob child"
@@ -392,7 +392,7 @@ let rec print_list = function
    paths in the working tree that are not tracked by Git 
    let status3 = failwith "TODO" *)
 
-let rec get_file's_blob_hash = function
+let get_file's_blob_hash = function
   | [Node (Blob b, l')] -> b
   | _ -> failwith "A file must have one and only one blob child"
 
@@ -414,14 +414,17 @@ let rec find_file (address : string) (filename : string) (tree : GitTree.t) : st
   | Node (Tree_Object treeob, l) -> find_help_children 
                                       filename (address ^ "/" ^ treeob) l
   | Node (File f, l) -> 
-    if (address ^ "/" ^ f) = filename then get_file's_blob_hash l else ""
+    if (let len = (address ^ "/" ^ f) |> String.length in
+        let len' = len - 2 in
+        let str = String.sub (address ^ "/" ^ f) 2 len' in 
+        str = filename) then (get_file's_blob_hash l) else ""
   | Node (Blob b, l) -> failwith "cannot reach any blob"
   | Node (Commit c, l) -> failwith "cannot reach any commit"
   | Node (Ref r, l) -> failwith "cannot reach any ref"
 
 let file_changed (filename : string) (hash : string) : bool = 
   let hash_in_head = find_file "" filename (current_head_to_git_tree ()) in 
-  hash <> hash_in_head
+  hash <> hash_str ("Blob " ^ hash_in_head)
 
 (* added but not committed files: 
    paths that have differences between the index file and the current HEAD commit *)
@@ -432,7 +435,12 @@ let status1 () : string list =
   List.split bindings |> fst
 
 let status () = 
-  let lst2 = status1 () |> List.sort_uniq (String.compare) in 
+  let lst1 = status1 () |> List.sort_uniq (String.compare) in 
+  if List.length lst1 > 0 then
+    print_endline("The following files are about to be commited:");
+  print_list lst1;
+
+  let lst2 = status2 () |> List.sort_uniq (String.compare) in 
   if List.length lst2 > 0 then
     print_endline("The following files have been modified since the last commit:");
   print_list lst2
