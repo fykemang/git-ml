@@ -274,10 +274,7 @@ let rec tree_hash_to_git_tree ?name:(name = "") hash_adr =
                               helper ((cat_string (List.nth t 0)) 
                                       |> (String.split_on_char '\n')))::acc)
       | h::t when h = "Blob" -> begin
-          match t with
-          | [""] -> Node (Blob "", [])::acc
-          | _ -> Node (Blob (String.concat "\n" ((String.concat " " t)::tl))
-                      , [])::acc
+          Node (Blob (String.concat "\n" ((String.concat " " t)::tl)), [])::acc
         end
       | h::t -> failwith ("helper only operates on Tree_Object, File or Blob,\
                            attempting to operate on: " ^ h ^ "| with rest of string:"
@@ -285,7 +282,7 @@ let rec tree_hash_to_git_tree ?name:(name = "") hash_adr =
   let spl = cat_string hash_adr |> String.split_on_char '\n' in
   let children = helper spl in Node (Tree_Object name, children)
 
-let read_head () = 
+let read_head () =
   let in_ch = open_in ".git-ml/HEAD" in
   try
     input_line in_ch
@@ -299,20 +296,27 @@ let current_head_to_git_tree () =
     cat_string commit_hash |> String.split_on_char '\n' |> List.hd 
     |> String.split_on_char ' ' |> List.tl |> List.hd |> tree_hash_to_git_tree
 
-(** [idx_to_content ()] is a mapping from file name to file content based on
-    index/git-ml *)
-let idx_to_content () =
+(** [idx_to_content ()] is a mapping from file name to file content in
+    the repository based on index/git-ml *)
+let commit_idx () =
   StrMap.fold (fun file hash acc ->
       StrMap.add file (hash |> cat_string |> remove_object_tag "Blob") acc) 
+    (read_idx ()) StrMap.empty
+
+(** [wrking_tree_idx ()]  is a mapping from file name to file content in the
+    working directory based on index/git-ml *)
+let wrking_tree_idx () =
+  StrMap.fold (fun file hash acc ->
+      let f_in = open_in file in StrMap.add file (read_file f_in) acc) 
     (read_idx ()) StrMap.empty
 
 let commit_command message branch =
   try
     let commit_path = input_line (open_in ".git-ml/HEAD") in
     if not (Sys.file_exists (".git-ml/" ^ commit_path))
-    then commit message branch (idx_to_content ()) GitTree.empty_tree_object
-    else commit message branch (idx_to_content ()) (current_head_to_git_tree ())
-  with e -> commit message branch (idx_to_content ()) GitTree.empty_tree_object
+    then commit message branch (commit_idx ()) GitTree.empty_tree_object
+    else commit message branch (commit_idx ()) (current_head_to_git_tree ())
+  with e -> commit message branch (commit_idx ()) GitTree.empty_tree_object
 
 let commit_command_default () = 
   commit_command "no commit message provided" "master" 
@@ -390,7 +394,7 @@ let rm address =
   | Not_found -> print_endline ("fatal: " ^ address ^ 
                                 " did not match any stored or tracked files.")
 
-  let diff () =
-    let idx = read_idx () in
-    let wrking_idx = StrMap.fold (fun file hash acc -> StrMap.add ) idx StrMap.empty in
-    ()
+let diff () =
+  let idx = read_idx () in
+  let wrking_idx = wrking_tree_idx () in
+  ()

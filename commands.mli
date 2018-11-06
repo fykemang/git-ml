@@ -62,3 +62,7 @@ val commit_command: string -> string -> unit
 (** [commit_command message branch] commits the staging area with 
     message ["no commit message"] on branch ["branch"] *)
 val commit_command_default: unit -> unit
+
+(** [diff ()] prints out any differences between files in the repository
+    and the working directory *)
+val diff : unit -> unit

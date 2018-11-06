@@ -82,6 +82,13 @@ let cmd_list = [
     default = Parse.Unit (status);
     opts = []
   };
+  {
+    name = "diff";
+    usage = "Shows the difference of files in between the working directory
+            and the repository.";
+    default = Parse.Unit (diff);
+    opts = []
+  }
 ]
 
 let main () = begin
