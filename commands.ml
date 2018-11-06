@@ -49,14 +49,14 @@ let cat_string s =
   let fold_header = String.sub s 0 2  in
   let fold_footer = String.sub s 2 (String.length s - 2) in
   try
-    let ic = open_in 
+    let ic = open_in
         (".git-ml/objects/" ^ fold_header ^ Filename.dir_sep ^ fold_footer) in
-    try 
+    try
       let content = read_file ic in
       content;
     with e -> failwith ("cat_string read error on .git-ml/objects/" 
                         ^ fold_header ^ "/" ^ fold_footer)
-  with e -> raise (FileNotFound 
+  with e -> raise (FileNotFound
                      ("file not found: " ^ fold_header ^ "/" ^ fold_footer))
 
 let hash_object file =
@@ -387,3 +387,8 @@ let rm address =
   | Sys_error e -> print_endline e
   | Not_found -> print_endline ("fatal: " ^ address ^ 
                                 " did not match any stored or tracked files.")
+
+  let diff () =
+    let idx = read_idx () in
+    let wrking_idx = StrMap.fold (fun file hash acc -> StrMap.add ) idx StrMap.empty in
+    ()
