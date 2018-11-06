@@ -346,9 +346,15 @@ let rm address =
                                 " did not match any stored or tracked files.")
 
 let diff () =
-  let idx = read_idx () in
+  let commit_idx = commit_idx () in
   let wrking_idx = wrking_tree_idx () in
-  ()
+  let diff_idx = StrMap.fold (
+      fun file content acc ->
+        if content <> StrMap.find file wrking_idx
+        then failwith "Insert diff function here"
+        else acc
+    ) commit_idx StrMap.empty in
+  StrMap.iter (fun file diff -> Printf.printf "%s\n%s" file diff)
 
 (*------------------------------status code ---------------------------------*)
 
