@@ -321,6 +321,7 @@ let commit_command message branch =
 let commit_command_default () = 
   commit_command "no commit message provided" "master" 
 
+
 let rm address =
   try
     is_outside_path address;
@@ -343,6 +344,11 @@ let rm address =
   | Sys_error e -> print_endline e
   | Not_found -> print_endline ("fatal: " ^ address ^ 
                                 " did not match any stored or tracked files.")
+
+let diff () =
+  let idx = read_idx () in
+  let wrking_idx = wrking_tree_idx () in
+  ()
 
 (*------------------------------status code ---------------------------------*)
 
@@ -442,32 +448,8 @@ let status () =
   let lst1 = status1 () |> List.sort_uniq (String.compare) in 
   if List.length lst1 > 0 then
     print_endline("The following files are about to be commited:");
-  print_list lst1
-
-let rm address =
-  try
-    is_outside_path address;
-    let curr_idx = read_idx () in
-    let file_hash =  "Blob " ^ (address |> open_in |> read_file) |> hash_str in
-    let curr_tree = current_head_to_git_tree () in
-    if StrMap.find address curr_idx = file_hash && mem_hash file_hash curr_tree 
-    then
-      begin
-        wr_to_idx (StrMap.remove address curr_idx);
-        Sys.remove address;
-      end
-    else
-      print_endline
-        ("error: the following file has changes staged in the index: " ^ address)
-  with
-  | Unix_error (ENOENT, name, ".git-ml") ->
-    print_endline ("fatal: Not a git-ml repository" ^
-                   " (or any of the parent directories): .git-ml")
-  | Sys_error e -> print_endline e
-  | Not_found -> print_endline ("fatal: " ^ address ^ 
-                                " did not match any stored or tracked files.")
-
-let diff () =
-  let idx = read_idx () in
-  let wrking_idx = wrking_tree_idx () in
-  ()
+  print_list lst1;
+  let lst2 = status2 () |> List.sort_uniq (String.compare) in 
+  if List.length lst2 > 0 then
+    print_endline("The following files have been modified since the last commit:");
+  print_list lst2
