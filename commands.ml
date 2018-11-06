@@ -317,56 +317,6 @@ let commit_command message branch =
 let commit_command_default () = 
   commit_command "no commit message provided" "master" 
 
-let compare_files hash file_name = 
-  let len = file_name |> String.length in
-  let len' = len - 2 in
-  let str = String.sub file_name 2 len' in
-  let content = read_file (str |> open_in) in
-  hash_str "Blob " ^ content = hash_str "Blob " ^ hash
-
-let rec compare_file_blob prefix f l acc = 
-  match l with
-  | [Node (Blob b, l')] -> if compare_files b (prefix ^ "/" ^ f) 
-    then acc else f::acc
-  | _ -> failwith "A file must have one and only one blob child"
-
-let rec status1_help address acc tree = 
-  (** [status1_help_children acc' l] is the updated [acc'] after processing 
-      all treenodes in [l]. *)
-  let rec status1_help_children 
-      (level_addr : string) 
-      (acc': string list) 
-      (l: GitTree.t list) : string list = 
-    match l with
-    | [] -> acc'
-    | Leaf::t-> failwith "there should be no leaf"
-    | Node (o, lst)::t ->   
-      let updated = status1_help level_addr acc' (Node (o, lst)) in
-      status1_help_children level_addr (updated @ acc') t
-  in
-  match tree with
-  | Leaf -> failwith "there should be no Leaf in the tree"
-  | Node (Tree_Object treeob, l) -> status1_help_children 
-                                      (address ^ "/" ^ treeob) acc l
-  | Node (File f, l) -> compare_file_blob address f l acc
-  | Node (Blob b, l) -> failwith "cannot reach any blob"
-  | Node (Commit c, l) -> failwith "cannot reach any commit"
-  | Node (Ref r, l) -> failwith "cannot reach any ref"
-
-(* difference between working directory (tree) and current commit *)
-let status1 () = status1_help "" [] (current_head_to_git_tree ())
-
-let rec print_list = function 
-  | [] -> ()
-  | h::t -> print_endline h ; print_list t
-
-let status () = 
-  let lst1 = status1 () in 
-  if List.length lst1 > 0 then
-    print_endline("The following files have been modified since the last commit:");
-  print_endline(string_of_int (List.length lst1));
-  print_list lst1
-
 let rm address =
   try
     is_outside_path address;
@@ -389,3 +339,65 @@ let rm address =
   | Sys_error e -> print_endline e
   | Not_found -> print_endline ("fatal: " ^ address ^ 
                                 " did not match any stored or tracked files.")
+
+(*------------------------------status code ---------------------------------*)
+
+let compare_files hash file_name = 
+  let len = file_name |> String.length in
+  let len' = len - 2 in
+  let str = String.sub file_name 2 len' in
+  let content = read_file (str |> open_in) in
+  hash_str "Blob " ^ content = hash_str "Blob " ^ hash
+
+let rec compare_file_blob prefix f l acc = 
+  match l with
+  | [Node (Blob b, l')] -> begin
+      if compare_files b (prefix ^ "/" ^ f) 
+      then acc else f::acc
+    end
+  | _ -> failwith "A file must have one and only one blob child"
+
+let rec status2_help address acc tree = 
+  (** [status1_help_children acc' l] is the updated [acc'] after processing 
+      all treenodes in [l]. *)
+  let rec status2_help_children 
+      (level_addr : string) 
+      (acc': string list) 
+      (l: GitTree.t list) : string list = 
+    match l with
+    | [] -> acc'
+    | Leaf::t-> failwith "there should be no leaf"
+    | Node (o, lst)::t ->   
+      let updated = status2_help level_addr acc' (Node (o, lst)) in
+      status2_help_children level_addr (updated @ acc') t 
+  in
+  match tree with
+  | Leaf -> failwith "there should be no Leaf in the tree"
+  | Node (Tree_Object treeob, l) -> status2_help_children 
+                                      (address ^ "/" ^ treeob) acc l
+  | Node (File f, l) -> compare_file_blob address f l acc
+  | Node (Blob b, l) -> failwith "cannot reach any blob"
+  | Node (Commit c, l) -> failwith "cannot reach any commit"
+  | Node (Ref r, l) -> failwith "cannot reach any ref"
+
+(* difference between working directory (tree) and current commit: 
+   paths that have differences between the working tree and the index file *)
+let status2 () = status2_help "" [] (current_head_to_git_tree ())
+
+let rec print_list = function 
+  | [] -> ()
+  | h::t -> print_endline h ; print_list t
+
+(* untracked files, need to add then commit: 
+   paths in the working tree that are not tracked by Git *)
+let status3 = failwith "TODO"
+
+(* added but not committed files: 
+   paths that have differences between the index file and the current HEAD commit *)
+let status1 = failwith "TODO"
+
+let status () = 
+  let lst2 = status2 () |> List.sort_uniq (String.compare) in 
+  if List.length lst2 > 0 then
+    print_endline("The following files have been modified since the last commit:");
+  print_list lst2
