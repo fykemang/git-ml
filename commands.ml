@@ -170,7 +170,7 @@ let add_file ?idx:(idx = StrMap.empty) (file : string) : StrMap.key StrMap.t =
     if it does not then recurse through the file system back to the directory
     where it exists
     Requires: The current directory is a child folder of the directory
-              where ".git-ml" exists *)
+          where ".git-ml" exists *)
 let rec to_base_dir () : unit =
   try ignore (Sys.is_directory ".git-ml") with 
     Sys_error s -> chdir "../"; to_base_dir ()
@@ -321,10 +321,8 @@ let compare_files hash file_name =
   let len = file_name |> String.length in
   let len' = len - 2 in
   let str = String.sub file_name 2 len' in
-  print_endline hash;
-  print_endline ("Blob" ^ hash);
-  print_endline (String.sub hash 1 ((String.length hash) - 1));
-  hash_file str = hash_str (String.sub hash 1 ((String.length hash) - 1))
+  let content = read_file (str |> open_in) in
+  hash_str "Blob " ^ content = hash_str "Blob " ^ hash
 
 let rec compare_file_blob prefix f l acc = 
   match l with
@@ -363,7 +361,11 @@ let rec print_list = function
   | h::t -> print_endline h ; print_list t
 
 let status () = 
-  let lst = status1 () in print_list lst
+  let lst1 = status1 () in 
+  if List.length lst1 > 0 then
+    print_endline("The following files have been modified since the last commit:");
+  print_endline(string_of_int (List.length lst1));
+  print_list lst1
 
 let rm address =
   try

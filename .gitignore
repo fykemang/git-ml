@@ -19,3 +19,5 @@ _build
 \#*\#
 .DS_Store
 .git-ml
+test
+bash_test
