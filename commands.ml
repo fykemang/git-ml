@@ -321,23 +321,50 @@ let commit_command message branch =
 let commit_command_default () = 
   commit_command "no commit message provided" "master" 
 
-let compare_files hash file_name = 
+let rm address =
+  try
+    is_outside_path address;
+    let curr_idx = read_idx () in
+    let file_hash =  "Blob " ^ (address |> open_in |> read_file) |> hash_str in
+    let curr_tree = current_head_to_git_tree () in
+    if StrMap.find address curr_idx = file_hash && mem_hash file_hash curr_tree 
+    then
+      begin
+        wr_to_idx (StrMap.remove address curr_idx);
+        Sys.remove address;
+      end
+    else
+      print_endline
+        ("error: the following file has changes staged in the index: " ^ address)
+  with
+  | Unix_error (ENOENT, name, ".git-ml") ->
+    print_endline ("fatal: Not a git-ml repository" ^
+                   " (or any of the parent directories): .git-ml")
+  | Sys_error e -> print_endline e
+  | Not_found -> print_endline ("fatal: " ^ address ^ 
+                                " did not match any stored or tracked files.")
+
+(*------------------------------status code ---------------------------------*)
+
+let compare_files blob_obj file_name = 
   let len = file_name |> String.length in
   let len' = len - 2 in
   let str = String.sub file_name 2 len' in
   let content = read_file (str |> open_in) in
-  hash_str "Blob " ^ content = hash_str "Blob " ^ hash
+  hash_str "Blob " ^ content = hash_str "Blob " ^ blob_obj
 
 let rec compare_file_blob prefix f l acc = 
   match l with
-  | [Node (Blob b, l')] -> if compare_files b (prefix ^ "/" ^ f) 
-    then acc else f::acc
+  | [Node (Blob b, l')] -> begin
+      if compare_files b (prefix ^ "/" ^ f) 
+      then acc else f::acc
+    end
   | _ -> failwith "A file must have one and only one blob child"
 
-let rec status1_help address acc tree = 
+let rec status2_help address acc tree = 
   (** [status1_help_children acc' l] is the updated [acc'] after processing 
       all treenodes in [l]. *)
-  let rec status1_help_children 
+  let rec status2_help_children 
       (level_addr : string) 
       (acc': string list) 
       (l: GitTree.t list) : string list = 
@@ -345,30 +372,76 @@ let rec status1_help address acc tree =
     | [] -> acc'
     | Leaf::t-> failwith "there should be no leaf"
     | Node (o, lst)::t ->   
-      let updated = status1_help level_addr acc' (Node (o, lst)) in
-      status1_help_children level_addr (updated @ acc') t
+      let updated = status2_help level_addr acc' (Node (o, lst)) in
+      status2_help_children level_addr (updated @ acc') t 
   in
   match tree with
   | Leaf -> failwith "there should be no Leaf in the tree"
-  | Node (Tree_Object treeob, l) -> status1_help_children 
+  | Node (Tree_Object treeob, l) -> status2_help_children 
                                       (address ^ "/" ^ treeob) acc l
   | Node (File f, l) -> compare_file_blob address f l acc
   | Node (Blob b, l) -> failwith "cannot reach any blob"
   | Node (Commit c, l) -> failwith "cannot reach any commit"
   | Node (Ref r, l) -> failwith "cannot reach any ref"
 
-(* difference between working directory (tree) and current commit *)
-let status1 () = status1_help "" [] (current_head_to_git_tree ())
+(* difference between working directory (tree) and current commit: 
+   paths that have differences between the working tree and the index file *)
+let status2 () = status2_help "" [] (current_head_to_git_tree ())
 
 let rec print_list = function 
   | [] -> ()
   | h::t -> print_endline h ; print_list t
 
+(* untracked files, need to add then commit: 
+   paths in the working tree that are not tracked by Git 
+   let status3 = failwith "TODO" *)
+
+let get_file's_blob_hash = function
+  | [Node (Blob b, l')] -> b
+  | _ -> failwith "A file must have one and only one blob child"
+
+let rec find_file (address : string) (filename : string) (tree : GitTree.t) : string = 
+  let rec find_help_children
+      (filename: string)
+      (level_addr : string) 
+      (l: GitTree.t list) : string = 
+    match l with
+    | [] -> ""
+    | Leaf::t-> failwith "there should be no leaf in the tree"
+    | Node (o, lst) as node :: t -> 
+      let potential_hash = find_file level_addr filename node in 
+      if potential_hash = "" then find_help_children filename level_addr t 
+      else potential_hash
+  in
+  match tree with
+  | Leaf -> failwith "there should be no Leaf in the tree"
+  | Node (Tree_Object treeob, l) -> find_help_children 
+                                      filename (address ^ "/" ^ treeob) l
+  | Node (File f, l) -> 
+    if (let len = (address ^ "/" ^ f) |> String.length in
+        let len' = len - 2 in
+        let str = String.sub (address ^ "/" ^ f) 2 len' in 
+        str = filename) then (get_file's_blob_hash l) else ""
+  | Node (Blob b, l) -> failwith "cannot reach any blob"
+  | Node (Commit c, l) -> failwith "cannot reach any commit"
+  | Node (Ref r, l) -> failwith "cannot reach any ref"
+
+let file_changed (filename : string) (hash : string) : bool = 
+  let hash_in_head = find_file "" filename (current_head_to_git_tree ()) in 
+  hash <> hash_str ("Blob " ^ hash_in_head)
+
+(* added but not committed files: 
+   paths that have differences between the index file and the current HEAD commit *)
+let status1 () : string list = 
+  let idx = read_idx () in 
+  let updated_map = StrMap.filter file_changed idx in 
+  let bindings = StrMap.bindings updated_map in
+  List.split bindings |> fst
+
 let status () = 
-  let lst1 = status1 () in 
+  let lst1 = status1 () |> List.sort_uniq (String.compare) in 
   if List.length lst1 > 0 then
-    print_endline("The following files have been modified since the last commit:");
-  print_endline(string_of_int (List.length lst1));
+    print_endline("The following files are about to be commited:");
   print_list lst1
 
 let rm address =
