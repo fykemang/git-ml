@@ -321,10 +321,8 @@ let compare_files hash file_name =
   let len = file_name |> String.length in
   let len' = len - 2 in
   let str = String.sub file_name 2 len' in
-  print_endline hash;
-  print_endline ("Blob" ^ hash);
-  print_endline (String.sub hash 1 ((String.length hash) - 1));
-  hash_file str = hash_str (String.sub hash 1 ((String.length hash) - 1))
+  let content = read_file (str |> open_in) in
+  hash_str "Blob " ^ content = hash_str "Blob " ^ hash
 
 let rec compare_file_blob prefix f l acc = 
   match l with
@@ -363,7 +361,11 @@ let rec print_list = function
   | h::t -> print_endline h ; print_list t
 
 let status () = 
-  let lst = status1 () in print_list lst
+  let lst1 = status1 () in 
+  if List.length lst1 > 0 then
+    print_endline("The following files have been modified since the last commit:");
+  print_endline(string_of_int (List.length lst1));
+  print_list lst1
 
 let rm address =
   try
