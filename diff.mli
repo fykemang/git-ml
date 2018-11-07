@@ -1,8 +1,7 @@
-type order = LT | EQ | GT
-
-module type OrderedType = sig
+module type Object = sig
   type t
-  val compare : t -> t -> order 
+  val compare : t -> t -> int
+  val format : Format.formatter -> t -> unit
 end
 
 module type Diff_engine = sig
@@ -21,4 +20,4 @@ module type Diff_engine = sig
   val diff : obj list -> obj list -> t
 end
 
-module Make (Obj: OrderedType) : Diff_engine with type obj = Obj.t
+module Make (Obj: Object) : Diff_engine with type obj = Obj.t

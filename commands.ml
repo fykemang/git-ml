@@ -354,7 +354,7 @@ let diff () =
         then failwith "Insert diff function here"
         else acc
     ) commit_idx StrMap.empty in
-  StrMap.iter (fun file diff -> Printf.printf "%s\n%s" file diff)
+  StrMap.iter (fun file diff -> Printf.printf "%s\n%s" file diff) diff_idx
 
 (*------------------------------status code ---------------------------------*)
 

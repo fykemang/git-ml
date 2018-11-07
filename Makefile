@@ -1,4 +1,4 @@
-MODULES=authors main commands gitTree util parse
+MODULES=authors main commands gitTree util parse diff
 OBJECTS=$(MODULES:=.cmo)
 MLS=$(MODULES:=.ml)
 MLIS=$(MODULES:=.mli)
