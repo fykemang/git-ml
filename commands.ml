@@ -70,7 +70,14 @@ let hash_object_default file =
 
 let ls_tree s = failwith "Unimplemented"
 
-let log branch =
+let current_branch () = 
+  (read_file (open_in  ".git-ml/HEAD")) |> String.split_on_char '\n' |> List.hd 
+  |> String.split_on_char '/'  |> List.rev |> 
+  List.hd 
+
+
+let log () =
+  let branch = current_branch () in
   try
     let log_string = read_file (open_in (".git-ml/logs/refs/heads/" ^ branch)) 
     in print_endline ("Git Log: \n" ^ log_string)
@@ -306,7 +313,8 @@ let idx_to_content () =
       StrMap.add file (hash |> cat_string |> remove_object_tag "Blob") acc) 
     (read_idx ()) StrMap.empty
 
-let commit_command message branch =
+let commit_command message =
+  let branch = current_branch () in
   try
     let commit_path = input_line (open_in ".git-ml/HEAD") in
     if not (Sys.file_exists (".git-ml/" ^ commit_path))
@@ -315,7 +323,7 @@ let commit_command message branch =
   with e -> commit message branch (idx_to_content ()) GitTree.empty_tree_object
 
 let commit_command_default () = 
-  commit_command "no commit message provided" "master" 
+  commit_command "no commit message provided" 
 
 let compare_files hash file_name = 
   let len = file_name |> String.length in
@@ -387,3 +395,74 @@ let rm address =
   | Sys_error e -> print_endline e
   | Not_found -> print_endline ("fatal: " ^ address ^ 
                                 " did not match any stored or tracked files.")
+
+let checkout_path path = 
+  let rec overwrite_all_files_in_subtree path = function
+    | [] -> ()
+    | Leaf :: t -> failwith "no leafs!"
+    | Node (Tree_Object s, lst):: t -> begin
+        try 
+          mkdir (path ^ Filename.dir_sep ^ s) 0o700;
+          overwrite_all_files_in_subtree (path ^ Filename.dir_sep ^ s) lst;
+          overwrite_all_files_in_subtree path t;
+        with e -> 
+          overwrite_all_files_in_subtree (path ^ Filename.dir_sep ^ s) lst;
+          overwrite_all_files_in_subtree path t;
+      end
+    | Node (File s,lst)::t -> let filename = s in 
+      let content = GitTree.string_of_git_object (GitTree.git_object_of_tree 
+                                                    (List.hd lst))
+      in output_string (open_out (path ^ "/" ^ filename)) content;
+      overwrite_all_files_in_subtree path t
+    | Node (_,lst) :: t -> failwith "invalid object in GitTree"
+  in
+  let rec checkout_path_helper subdir_lst tree : unit=
+    match subdir_lst with 
+    | [] -> failwith ("checkout path error, trying to checkout invalid path " 
+                      ^ path)
+    | h::[] -> begin
+        let subdir_tree = if h = "." then (tree) 
+          else (GitTree.get_subdirectory_tree h tree) in
+        match subdir_tree with 
+        | Leaf -> failwith 
+                    "Error GitTree.get_subdirectory_tree giving Leaf output"
+        | Node (o, []) -> failwith "Improper file path in checkout"
+        | Node (o, lst) -> overwrite_all_files_in_subtree path lst
+      end
+    | h::t -> let subdir_tree = GitTree.get_subdirectory_tree h tree in 
+      checkout_path_helper t subdir_tree
+  in
+  let current_tree = current_head_to_git_tree () in 
+  try
+    checkout_path_helper (String.split_on_char '/' path) current_tree
+  with e -> raise e
+
+let checkout_branch branch = 
+  let current_head_pointer = if (Sys.file_exists ".git-ml/HEAD") 
+    then input_line (open_in (".git-ml/" ^ (read_head ())))
+    else "00000000000000000000000000000000"
+  in 
+  let oc = (open_out ".git-ml/HEAD") in
+  output_string  oc ("refs/heads/" ^ branch);
+  close_out oc;
+  if (not (Sys.file_exists (".git-ml/refs/heads/" ^ branch))) 
+  then begin
+    print_endline ("Creating new branch " ^ branch);
+    let oc2 = open_out (".git-ml/refs/heads/" ^ branch) in 
+    output_string (oc2) 
+      current_head_pointer;
+    close_out oc2;
+    if current_head_pointer <> "00000000000000000000000000000000" then 
+      begin
+        let last_hash = "00000000000000000000000000000000" in
+        let oc_ref = open_out 
+            (".git-ml/logs/refs/heads/" ^ branch) in
+        output_string oc_ref ("\n" ^ last_hash ^ " " ^ (current_head_pointer) 
+                              ^ " Root Author <root@3110.org> commit: " 
+                              ^ "created new branch " ^ branch);
+      end 
+    else ()
+  end
+  else print_endline ("Switching to branch " ^ branch);
+  checkout_path "."
+

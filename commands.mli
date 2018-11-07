@@ -18,8 +18,9 @@ val hash_object : string -> unit
 (** [hash_object_default] implements the function of hash-object*)
 val hash_object_default: string -> unit
 
-(** [log b] prints a formatted string detailing all commits on branch b*)
-val log : string -> unit
+(** [log] prints a formatted string detailing all commits on the current
+    branch*)
+val log : unit -> unit
 
 (** [ls_tree s] is the structure of a tree given [s] its hashed
     hex representation. *)
@@ -55,10 +56,14 @@ val status: unit -> unit
     head **)
 val current_head_to_git_tree: unit -> GitTree.t
 
-(** [commit_command message branch] commits the staging area with 
-    message [message] on branch [branch] *)
-val commit_command: string -> string -> unit
+(** [commit_command message] commits the staging area with 
+    message [message] on the current branch *)
+val commit_command: string -> unit
 
 (** [commit_command message branch] commits the staging area with 
     message ["no commit message"] on branch ["branch"] *)
 val commit_command_default: unit -> unit
+
+val checkout_path: string -> unit
+
+val checkout_branch: string -> unit

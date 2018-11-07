@@ -60,20 +60,15 @@ let cmd_list = [
       {
         name = "-m"; 
         usage = "Commit message"; 
-        action = Parse.String (fun b -> commit_command b "master")
+        action = Parse.String (fun b -> commit_command b)
       }
     ]
   };
   {
     name = "log";
     usage = "Get the ref log of the commits";
-    default = Parse.Unit (fun () -> (log "master"));
+    default = Parse.Unit (fun () -> (log ()));
     opts = [
-      {
-        name = "-b"; 
-        usage = "Get the reflog with on the branch -b [branch]"; 
-        action = Parse.String (log)
-      }
     ]
   };
   {
@@ -81,6 +76,24 @@ let cmd_list = [
     usage = "Checking status.";
     default = Parse.Unit (status);
     opts = []
+  };
+  {
+    name = "checkout";
+    usage = "[TODO: CHECKOUT DESCRIPTION]";
+    default = Parse.Unit (fun () -> (Commands.checkout_path "."));
+    opts = [
+      {
+        name = "--"; 
+        usage = "Checkout a specific folder path on the given path"; 
+        action = Parse.String (Commands.checkout_path)
+
+      };
+      {
+        name = "-b"; 
+        usage = "Checkout a specific branch, creates the branch if it doesn't exist"; 
+        action = Parse.String (Commands.checkout_branch)
+
+      }]
   };
 ]
 

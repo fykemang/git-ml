@@ -82,3 +82,6 @@ val hash_of_git_object: git_object -> string
 (** [mem_file hash t] is true if the blob object with hash [hash] is inside
     GitTree [t], false otherwise *)
 val mem_hash: string -> t -> bool
+
+(** [git_object_of_tree tree] is the [git_object] at the root of [tree] *)
+val git_object_of_tree: t -> git_object
