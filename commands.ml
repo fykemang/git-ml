@@ -671,13 +671,7 @@ let invoke_status status msg =
   print_list lst
 
 let status () = 
-<<<<<<< HEAD
-  invoke_status status1 "The following files are about to be commited:";
-  invoke_status status2 "The following files have been modified since the last commit:"; 
-  invoke_status status3 "The following files are untracked:" 
-=======
   invoke_status status1 "The following files are about to be commited:"
 (*invoke_status status2 "The following files have been modified since the last commit:";*) 
 (*invoke_status status3 "The following files are untracked:" *)
 
->>>>>>> 7bacb52a2858f7868ec11058eee015ec9f8402e4
