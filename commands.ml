@@ -579,11 +579,13 @@ let status1 () : string list =
 let status () = 
   let lst1 = status1 () |> List.sort_uniq (String.compare) in 
   if List.length lst1 > 0 then
-    print_endline("The following files are about to be commited:");
+    print_endline("The following files are about to be commited: \n");
   print_list lst1;
+  print_endline("");
   let lst2 = status2 () |> List.sort_uniq (String.compare) in 
   if List.length lst2 > 0 then
-    print_endline("The following files have been modified since the last commit:");
+    print_endline("The following files have been modified since the last commit: \n");
   print_list lst2;
+  print_endline("");
   if  List.length lst1 = 0 && List.length lst2 = 0
-  then print_endline("Everyting up to date");
+  then print_endline("Everyting up to date. \n");
