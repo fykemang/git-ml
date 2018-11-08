@@ -1,4 +1,4 @@
-MODULES=authors main commands gitTree util parse diff
+MODULES=authors main commands gitTree util parse diff_engine
 OBJECTS=$(MODULES:=.cmo)
 MLS=$(MODULES:=.ml)
 MLIS=$(MODULES:=.mli)
@@ -6,7 +6,7 @@ TEST=test.byte
 TEST_CMD=test_commands.byte
 MAIN=main.byte
 OCAMLBUILD=ocamlbuild -use-ocamlfind
-PKGS=oUnit,unix,yojson,str
+PKGS=oUnit,unix,yojson,str, ANSITerminal
 
 default: build
 	utop

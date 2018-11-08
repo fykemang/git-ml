@@ -18,6 +18,8 @@ module type Diff_engine = sig
   (** [diff lst lst'] is a list of diff_obj [t] which represents
       the difference between  *)
   val diff : obj list -> obj list -> t
+  
+  val format_diff : Format.formatter -> diff_obj list -> unit
 end
 
 module Make (Obj: Object) : Diff_engine with type obj = Obj.t
