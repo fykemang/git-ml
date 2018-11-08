@@ -1,6 +1,8 @@
 open GitTree
 open Unix
 open Util
+open Sys
+
 
 module StrMap = Map.Make(String)
 module String = struct
@@ -194,7 +196,7 @@ let rec to_base_dir () : unit =
 let rec add_dir_files ?idx:(idx = StrMap.empty) (address : string) =
   let rec parse_dir ?idx:(idx = StrMap.empty) (dir : Unix.dir_handle) =
     try
-      let n = readdir dir in
+      let n = Unix.readdir dir in
       if Filename.check_suffix n "." || Filename.check_suffix n ".git-ml" 
       then parse_dir dir ~idx:idx
       else
@@ -220,9 +222,8 @@ let wr_to_idx (idx : string StrMap.t) : unit =
   close_out out_ch;
   chdir ".."
 
-(** [read_idx curr_idx] takes a string list [curr_idx] representing the current
-    entries in the index and returns a mapping from each entries filename
-    to content hash *)
+(** [read_idx ()] is a mapping from each entries filename
+    to content hash based on the current index *)
 let read_idx () : string StrMap.t =
   chdir ".git-ml";
   let curr_idx = open_in_gen [Open_creat] 0o700 "index" 
@@ -357,8 +358,8 @@ let rm address =
   | Sys_error e -> print_endline e
   | Not_found -> print_endline ("fatal: " ^ address ^ 
                                 " did not match any stored or tracked files.")
-
 open Diff_eng
+
 let rec print_diff_obj_lst lst = match lst with
   | [] -> ()
   | hd::tl -> 
@@ -370,38 +371,59 @@ let rec print_diff_obj_lst lst = match lst with
     | Eq s -> List.iter (fun str -> Format.printf "= %s\n" str) s;
       print_diff_obj_lst tl
 
-let diff () =
-  let commit_idx = commit_idx () in
-  let wrking_idx = wrking_tree_idx () in
-  let diff_idx = StrMap.fold (
-      fun file content acc ->
-        let wrk_dir_content = StrMap.find file wrking_idx in
-        if content <> wrk_dir_content
-        then
-          let content_lines = String.split_on_char '\n' content in
-          let wrk_content_lines = String.split_on_char '\n' wrk_dir_content in
-          let diff_list = Diff_eng.diff content_lines wrk_content_lines in
-          StrMap.add file diff_list acc
-        else acc
-    ) commit_idx StrMap.empty in
-  StrMap.iter (fun file diff ->
-      Printf.printf "File: %s\n" file;
-      print_diff_obj_lst diff
-    ) diff_idx
+(** [pp_list pp_elt lst] pretty-prints list [lst], using [pp_elt]
+    to pretty-print each element of [lst]. *)
+let pp_list pp_elt lst =
+  let pp_elts lst =
+    let rec loop n acc = function
+      | [] -> acc
+      | [h] -> acc ^ pp_elt h
+      | h1::(h2::t as t') -> loop (n+1) (acc ^ (pp_elt h1) ^ "; ") t'
+    in loop 0 "" lst
+  in "[" ^ pp_elts lst ^ "]"
+
+let diff () = try
+    let commit_idx = commit_idx () in
+    let wrking_idx = wrking_tree_idx () in
+    let diff_idx = StrMap.fold (
+        fun file content acc ->
+          let wrk_dir_content = StrMap.find file wrking_idx in
+          if content <> wrk_dir_content
+          then
+            let content_lines = String.split_on_char '\n' content in
+            let str1 = pp_list (fun s -> s) content_lines in
+            let wrk_content_lines = String.split_on_char '\n' wrk_dir_content in
+            let str2 = pp_list (fun s -> s) wrk_content_lines in
+            print_endline (string_of_bool (str1 = str2));
+            let diff_list = Diff_eng.diff content_lines wrk_content_lines in
+            StrMap.add file diff_list acc
+          else acc
+      ) commit_idx StrMap.empty in
+    StrMap.iter (fun file diff ->
+        Printf.printf "File: %s\n" file;
+        print_diff_obj_lst diff
+      ) diff_idx
+  with 
+  | Unix_error (ENOENT, name, ".git-ml") ->
+    print_endline ("fatal: Not a git-ml repository" ^
+                   " (or any of the parent directories): .git-ml")
 
 (*------------------------------status code ---------------------------------*)
-
+(** compare_files *)
 let compare_files blob_obj file_name = 
-  let len = file_name |> String.length in
-  let len' = len - 2 in
-  let str = String.sub file_name 2 len' in
-  let content = read_file (str |> open_in) in
+  let content = read_file (file_name |> open_in) in
   hash_str "Blob " ^ content = hash_str "Blob " ^ blob_obj
 
 let rec compare_file_blob prefix f l acc = 
   match l with
   | [Node (Blob b, l')] -> begin
-      if compare_files b (prefix ^ "/" ^ f) 
+      if prefix ^ f = "" 
+      then if compare_files b ""
+        then acc else f::acc
+      else if prefix = "" 
+      then if compare_files b f 
+        then acc else f::acc
+      else if compare_files b (prefix ^ "/" ^ f)
       then acc else f::acc
     end
   | _ -> failwith "A file must have one and only one blob child"
@@ -422,8 +444,12 @@ let rec status2_help address acc tree =
   in
   match tree with
   | Leaf -> failwith "there should be no Leaf in the tree"
-  | Node (Tree_Object treeob, l) -> status2_help_children 
-                                      (address ^ "/" ^ treeob) acc l
+  | Node (Tree_Object treeob, l) -> 
+    if address ^ treeob = "" 
+    then status2_help_children "" acc l 
+    else if address = "" && treeob <> "" 
+    then status2_help_children treeob acc l 
+    else status2_help_children (address ^ "/" ^ treeob) acc l
   | Node (File f, l) -> compare_file_blob address f l acc
   | Node (Blob b, l) -> failwith "cannot reach any blob"
   | Node (Commit c, l) -> failwith "cannot reach any commit"
@@ -435,7 +461,7 @@ let status2 () = status2_help "" [] (current_head_to_git_tree ())
 
 let rec print_list = function 
   | [] -> ()
-  | h::t -> print_endline h ; print_list t
+  | h::t -> print_endline h; print_list t
 
 (* untracked files, need to add then commit: 
    paths in the working tree that are not tracked by Git 
@@ -465,33 +491,35 @@ let rm address =
                                 " did not match any stored or tracked files.")
 
 let checkout_path path = 
-  let rec overwrite_all_files_in_subtree path = function
+  let rec overwrite_all_files_in_subtree (path : string) = function
     | [] -> ()
     | Leaf :: t -> failwith "no leafs!"
-    | Node (Tree_Object s, lst):: t -> begin
+    | Node (Tree_Object s, lst) :: t -> begin
         try 
           mkdir (path ^ Filename.dir_sep ^ s) 0o700;
           overwrite_all_files_in_subtree (path ^ Filename.dir_sep ^ s) lst;
           overwrite_all_files_in_subtree path t;
-        with e -> 
+        with e ->
           overwrite_all_files_in_subtree (path ^ Filename.dir_sep ^ s) lst;
           overwrite_all_files_in_subtree path t;
       end
-    | Node (File s,lst)::t -> let filename = s in 
+    | Node (File s, lst)::t -> let filename = s in 
       let content = GitTree.string_of_git_object (GitTree.git_object_of_tree 
                                                     (List.hd lst))
       in output_string (open_out (path ^ "/" ^ filename)) content;
       overwrite_all_files_in_subtree path t
-    | Node (_,lst) :: t -> failwith "invalid object in GitTree"
+    | Node (_, lst)::t -> failwith "invalid object in GitTree"
   in
-  let rec checkout_path_helper subdir_lst tree : unit=
+  let rec checkout_path_helper
+      (subdir_lst : string list) 
+      (tree : GitTree.t) : unit =
     match subdir_lst with 
     | [] -> failwith ("checkout path error, trying to checkout invalid path " 
                       ^ path)
     | h::[] -> begin
         let subdir_tree = if h = "." then (tree) 
           else (GitTree.get_subdirectory_tree h tree) in
-        match subdir_tree with 
+        match subdir_tree with
         | Leaf -> failwith 
                     "Error GitTree.get_subdirectory_tree giving Leaf output"
         | Node (o, []) -> failwith "Improper file path in checkout"
@@ -506,36 +534,32 @@ let checkout_path path =
   with e -> raise e
 
 let checkout_branch branch = 
-  let current_head_pointer = if (Sys.file_exists ".git-ml/HEAD") 
+  let current_head_pointer = if Sys.file_exists ".git-ml/HEAD" 
     then input_line (open_in (".git-ml/" ^ (read_head ())))
     else "00000000000000000000000000000000"
-  in 
-  let oc = (open_out ".git-ml/HEAD") in
-  output_string  oc ("refs/heads/" ^ branch);
+  in
+  let oc = open_out ".git-ml/HEAD" in
+  output_string oc ("refs/heads/" ^ branch);
   close_out oc;
-  if (not (Sys.file_exists (".git-ml/refs/heads/" ^ branch))) 
-  then begin
-    print_endline ("Creating new branch " ^ branch);
-    let oc2 = open_out (".git-ml/refs/heads/" ^ branch) in 
-    output_string (oc2) 
-      current_head_pointer;
-    close_out oc2;
-    if current_head_pointer <> "00000000000000000000000000000000" then 
-      begin
+  if not (Sys.file_exists (".git-ml/refs/heads/" ^ branch))
+  then 
+    begin
+      print_endline ("Creating new branch " ^ branch);
+      let oc2 = open_out (".git-ml/refs/heads/" ^ branch) in 
+      output_string oc2 current_head_pointer;
+      close_out oc2;
+      if current_head_pointer <> "00000000000000000000000000000000" then 
         let last_hash = "00000000000000000000000000000000" in
-        let oc_ref = open_out 
-            (".git-ml/logs/refs/heads/" ^ branch) in
-        output_string oc_ref ("\n" ^ last_hash ^ " " ^ (current_head_pointer) 
-                              ^ " Root Author <root@3110.org> commit: " 
-                              ^ "created new branch " ^ branch);
-      end 
-    else ()
-  end
+        let oc_ref = open_out (".git-ml/logs/refs/heads/" ^ branch) in
+        output_string oc_ref ("\n" ^ last_hash ^ " " ^ current_head_pointer
+                              ^ " Root Author <root@3110.org> commit: / 
+                            created new branch " ^ branch);
+    end
   else print_endline ("Switching to branch " ^ branch);
   checkout_path "."
 
 let get_file's_blob_hash = function
-  | [Node (Blob b, l')] -> b
+  | [ Node (Blob b, l') ] -> b
   | _ -> failwith "A file must have one and only one blob child"
 
 let rec find_file (address : string) (filename : string) (tree : GitTree.t) : string = 
@@ -553,16 +577,18 @@ let rec find_file (address : string) (filename : string) (tree : GitTree.t) : st
   in
   match tree with
   | Leaf -> failwith "there should be no Leaf in the tree"
-  | Node (Tree_Object treeob, l) -> find_help_children 
-                                      filename (address ^ "/" ^ treeob) l
+  | Node (Tree_Object treeob, l) -> 
+    if address ^ treeob = ""  
+    then find_help_children filename "" l
+    else if address = "" && treeob <> "" 
+    then find_help_children filename treeob l 
+    else find_help_children filename (address ^ "/" ^ treeob) l
   | Node (File f, l) -> 
-    if (let len = (address ^ "/" ^ f) |> String.length in
-        let len' = len - 2 in
-        let str = String.sub (address ^ "/" ^ f) 2 len' in 
-        str = filename) then (get_file's_blob_hash l) else ""
+    if f = filename then (get_file's_blob_hash l) else ""
   | Node (Blob b, l) -> failwith "cannot reach any blob"
   | Node (Commit c, l) -> failwith "cannot reach any commit"
   | Node (Ref r, l) -> failwith "cannot reach any ref"
+
 
 let file_changed (filename : string) (hash : string) : bool = 
   let hash_in_head = find_file "" filename (current_head_to_git_tree ()) in 
@@ -576,15 +602,38 @@ let status1 () : string list =
   let bindings = StrMap.bindings updated_map in
   List.split bindings |> fst
 
+let untracked filename = 
+  (find_file "" filename (current_head_to_git_tree ())) = ""
+
+(* dir on its own, just the directory name, prefix + dir is whole directory name *)
+let rec read_dir (dir : string) (prefix: string) =
+  (* prefix + filename = the whole path *)
+  let rec read_dir_help (acc: string list) (handle : Unix.dir_handle) (prefix: string) =
+    try
+      let n = Unix.readdir handle in
+      if n = "." || n = ".." || n = ".git-ml" || n = ".DS_Store" || n = ".git"
+      then read_dir_help acc handle prefix
+      else if not (is_directory (prefix ^ n)) then
+        let res_lst = (if n |> untracked then (prefix ^ n)::acc else acc) in 
+        read_dir_help res_lst handle prefix
+      else
+        let new_lst = read_dir (prefix ^ n) (prefix ^ n ^ "/") in
+        read_dir_help (new_lst @ acc) handle prefix
+    with End_of_file -> closedir handle; acc in
+  read_dir_help [] (dir |> opendir) prefix
+
+let status3 () = read_dir "." ""
+
+let invoke_status status msg = 
+  let lst = status () |> List.sort_uniq (String.compare) in 
+  if List.length lst > 0 then
+    print_endline (msg ^ " \n");
+  print_list lst
+
 let status () = 
-  let lst1 = status1 () |> List.sort_uniq (String.compare) in 
-  if List.length lst1 > 0 then
-    print_endline("The following files are about to be commited:");
-  print_list lst1;
-  let lst2 = status2 () |> List.sort_uniq (String.compare) in 
-  if List.length lst2 > 0 then
-    print_endline("The following files have been modified since the last commit:");
-  print_list lst2
+  invoke_status status1 "The following files are about to be commited:"
+(*invoke_status status2 "The following files have been modified since the last commit:";*) 
+(*invoke_status status3 "The following files are untracked:" *)
 
 (** [ancestor_list branch] is the list of ancestor commits on branch [branch] *)
 let ancestor_list branch =  

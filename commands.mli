@@ -1,5 +1,3 @@
-
-
 type filename = string
 type file_content = string
 type file_object = filename * file_content
@@ -19,7 +17,7 @@ val hash_object : string -> unit
 val hash_object_default: string -> unit
 
 (** [log] prints a formatted string detailing all commits on the current
-    branch*)
+    branch *)
 val log : unit -> unit
 
 (** [ls_tree s] is the structure of a tree given [s] its hashed
@@ -49,7 +47,8 @@ val tag : unit -> unit
 val tag_assign: string -> unit
 
 (** [status ()] compares files in the working directory with the 
-    staging directory and prints files which have been modified *)
+    staging directory and repository. It shows files that are untracked, 
+    modified, or about to be commited*)
 val status: unit -> unit
 
 (** [current_head_to_git_Tree ()] gives the GitTree represented by the current 
