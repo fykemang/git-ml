@@ -390,18 +390,19 @@ let diff () =
     ) diff_idx
 
 (*------------------------------status code ---------------------------------*)
-
+(** compare_files *)
 let compare_files blob_obj file_name = 
-  let len = file_name |> String.length in
-  let len' = len - 2 in
-  let str = String.sub file_name 2 len' in
-  let content = read_file (str |> open_in) in
+  let content = read_file (file_name |> open_in) in
   hash_str "Blob " ^ content = hash_str "Blob " ^ blob_obj
 
 let rec compare_file_blob prefix f l acc = 
   match l with
   | [Node (Blob b, l')] -> begin
-      if compare_files b (prefix ^ "/" ^ f) 
+      if prefix <> "" then
+        if compare_files b (prefix ^ "/" ^ f) 
+        then acc else f::acc
+      else
+      if compare_files b f 
       then acc else f::acc
     end
   | _ -> failwith "A file must have one and only one blob child"
@@ -422,8 +423,9 @@ let rec status2_help address acc tree =
   in
   match tree with
   | Leaf -> failwith "there should be no Leaf in the tree"
-  | Node (Tree_Object treeob, l) -> status2_help_children 
-                                      (address ^ "/" ^ treeob) acc l
+  | Node (Tree_Object treeob, l) -> if treeob <> "" then
+      status2_help_children (address ^ "/" ^ treeob) acc l 
+    else status2_help_children treeob acc l
   | Node (File f, l) -> compare_file_blob address f l acc
   | Node (Blob b, l) -> failwith "cannot reach any blob"
   | Node (Commit c, l) -> failwith "cannot reach any commit"
@@ -551,13 +553,12 @@ let rec find_file (address : string) (filename : string) (tree : GitTree.t) : st
   in
   match tree with
   | Leaf -> failwith "there should be no Leaf in the tree"
-  | Node (Tree_Object treeob, l) -> find_help_children 
-                                      filename (address ^ "/" ^ treeob) l
+  | Node (Tree_Object treeob, l) -> if treeob <> "" then find_help_children 
+        filename treeob l
+    else find_help_children 
+        filename (address ^ "/" ^ treeob) l
   | Node (File f, l) -> 
-    if (let len = (address ^ "/" ^ f) |> String.length in
-        let len' = len - 2 in
-        let str = String.sub (address ^ "/" ^ f) 2 len' in 
-        str = filename) then (get_file's_blob_hash l) else ""
+    if f = filename then (get_file's_blob_hash l) else ""
   | Node (Blob b, l) -> failwith "cannot reach any blob"
   | Node (Commit c, l) -> failwith "cannot reach any commit"
   | Node (Ref r, l) -> failwith "cannot reach any ref"
@@ -577,9 +578,13 @@ let status1 () : string list =
 let status () = 
   let lst1 = status1 () |> List.sort_uniq (String.compare) in 
   if List.length lst1 > 0 then
-    print_endline("The following files are about to be commited:");
+    print_endline("The following files are about to be commited: \n");
   print_list lst1;
+  print_endline("");
   let lst2 = status2 () |> List.sort_uniq (String.compare) in 
   if List.length lst2 > 0 then
-    print_endline("The following files have been modified since the last commit:");
-  print_list lst2
+    print_endline("The following files have been modified since the last commit: \n");
+  print_list lst2;
+  print_endline("");
+  if  List.length lst1 = 0 && List.length lst2 = 0
+  then print_endline("Everyting up to date. \n");
