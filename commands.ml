@@ -1,6 +1,7 @@
 open GitTree
 open Unix
 open Util
+open Sys
 
 module StrMap = Map.Make(String)
 module String = struct
@@ -194,7 +195,7 @@ let rec to_base_dir () : unit =
 let rec add_dir_files ?idx:(idx = StrMap.empty) (address : string) =
   let rec parse_dir ?idx:(idx = StrMap.empty) (dir : Unix.dir_handle) =
     try
-      let n = readdir dir in
+      let n = Unix.readdir dir in
       if Filename.check_suffix n "." || Filename.check_suffix n ".git-ml" 
       then parse_dir dir ~idx:idx
       else
@@ -576,6 +577,26 @@ let status1 () : string list =
   let bindings = StrMap.bindings updated_map in
   List.split bindings |> fst
 
+let untracked filename = 
+  (find_file "" filename (current_head_to_git_tree ())) = ""
+
+let rec read_dir (dir : string) =
+  let rec read_dir_help (acc: string list) (handle : Unix.dir_handle) =
+    try
+      let n = Unix.readdir handle in
+      if n = "." || n = ".." || n = ".git-ml" 
+      then read_dir_help acc handle
+      else if not (is_directory n) then
+        let res_lst = (if n |> untracked then n::acc else acc) in 
+        read_dir_help res_lst handle
+      else
+        let new_lst = read_dir n in
+        read_dir_help (new_lst @ acc) handle
+    with End_of_file -> closedir handle; acc in
+  dir |> opendir |> read_dir_help []
+
+let status3 () = read_dir "."
+
 let status () = 
   let lst1 = status1 () |> List.sort_uniq (String.compare) in 
   if List.length lst1 > 0 then
@@ -584,4 +605,8 @@ let status () =
   let lst2 = status2 () |> List.sort_uniq (String.compare) in 
   if List.length lst2 > 0 then
     print_endline("The following files have been modified since the last commit:");
-  print_list lst2
+  print_list lst2;
+  let lst3 = status3 () |> List.sort_uniq (String.compare) in 
+  if List.length lst3 > 0 then
+    print_endline("The following files are untracked:");
+  print_list lst3;
