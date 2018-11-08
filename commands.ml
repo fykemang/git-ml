@@ -457,7 +457,7 @@ let rec status2_help address acc tree =
 
 (* difference between working directory (tree) and current commit: 
    paths that have differences between the working tree and the index file *)
-let status2 () = status2_help "" [] (current_head_to_git_tree ())
+let status2 () = print_endline "start status2"; status2_help "" [] (current_head_to_git_tree ())
 
 let rec print_list = function 
   | [] -> ()
@@ -611,6 +611,7 @@ let rec read_dir (dir : string) (prefix: string) =
   let rec read_dir_help (acc: string list) (handle : Unix.dir_handle) (prefix: string) =
     try
       let n = Unix.readdir handle in
+      print_endline n;
       if n = "." || n = ".." || n = ".git-ml" || n = ".DS_Store" || n = ".git"
       then read_dir_help acc handle prefix
       else if not (is_directory (prefix ^ n)) then
@@ -632,5 +633,5 @@ let invoke_status status msg =
 
 let status () = 
   invoke_status status1 "The following files are about to be commited:";
-  (*invoke_status status2 "The following files have been modified since the last commit:";*) 
-  (*invoke_status status3 "The following files are untracked:" *)
+  (*invoke_status status2 "The following files have been modified since the last commit:";
+    invoke_status status3 "The following files are untracked:"*)
