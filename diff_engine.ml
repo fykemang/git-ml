@@ -12,20 +12,10 @@ module type Diff_engine = sig
     | Eq of obj list
   type t = diff_obj list
   val diff : obj list -> obj list -> t
+  val format_diff : Format.formatter -> diff_obj list -> unit
 end
 
 module Make (Obj : Object) = struct
-  (** [pp_list pp_elt lst] pretty-prints list [lst], using [pp_elt]
-    to pretty-print each element of [lst]. *)
-let pp_list pp_elt lst =
-  let pp_elts lst =
-    let rec loop n acc = function
-      | [] -> acc
-      | [h] -> acc ^ pp_elt h
-      | h1::(h2::t as t') -> loop (n+1) (acc ^ (pp_elt h1) ^ "; ") t'
-    in loop 0 "" lst
-  in "[" ^ pp_elts lst ^ "]"
-
   type obj = Obj.t
 
   type diff_obj =
@@ -37,8 +27,8 @@ let pp_list pp_elt lst =
 
   module Int = struct 
     type t = int let 
-    compare = compare 
-    let format fmt x = Format.fprintf fmt "%d" x
+    compare = compare
+    let format fmt x = Format.fprintf fmt "%n" x
   end
 
   module ObjMap = Map.Make(Obj)
@@ -57,8 +47,8 @@ let pp_list pp_elt lst =
     | [] -> (st_lst, st_lst', seq, overlap)
     | hd::tl ->
       let old_subseq = match IntMap.find_opt (hd - 1) overlap with
-          | None -> 0
-          | Some n -> n in
+        | None -> 0
+        | Some n -> n in
       let new_subseq = old_subseq + 1 in
       let overlap = IntMap.add hd new_subseq overlap in
       if new_subseq > seq then
@@ -96,17 +86,20 @@ let pp_list pp_elt lst =
     | hd::tl as lst -> if n = 0 then acc, lst 
       else fold_n f (n - 1) tl ~acc:(f acc hd)
 
+  (** [slice i k lst] is a sublist of [lst] from index [i] to [k] *)
   let rec slice i k lst = 
     let _, lst = fold_n (fun acc h -> acc) i lst in
     let acc, _ = fold_n (fun acc h -> h::acc) (k - i + 1) lst in
     List.rev acc
 
+  (** [tl_append ?acc lst lst'] is a tail-recursive form of [lst @ lst'] *)
   let rec tl_append ?acc:(acc=[]) lst lst' =
     match lst, lst' with
     | [], [] -> acc |> List.rev
     | [], hd::tl -> tl_append [] tl ~acc:(hd::acc)
     | hd::tl, lst' -> tl_append tl lst' ~acc:(hd::acc)
 
+  (** [drop n lst] is [lst] with the first [n] elements removed *)
   let rec drop n = function
     | [] -> []
     | hd::tl as lst -> if n = 0 then lst else drop (n - 1) tl
@@ -116,9 +109,35 @@ let pp_list pp_elt lst =
     | [], [] -> []
     | _, _ ->
       let (st_lst, st_lst', seq) = longest_subsequence lst lst' in
-      if seq = 0 then [Del lst; Add lst']
+      if seq = 0 then 
+        match lst, lst' with
+        | [], lst' -> [Add lst']
+        | lst, [] -> [Del lst]
+        | lst, lst' -> [Del lst; Add lst']
       else
         diff (drop (st_lst + seq) lst) (drop (st_lst' + seq) lst') |>
         tl_append [Eq (slice st_lst' (st_lst' + seq - 1) lst')] |>
-        tl_append (diff (slice 0 (st_lst - 1) lst) (slice 0 (st_lst' - 1) lst')) 
+        tl_append (diff (slice 0 (st_lst - 1) lst) (slice 0 (st_lst' - 1) lst'))
+
+
+  let format_diff fmt t = 
+    Format.fprintf fmt "[";
+    List.iter (fun diff_obj -> 
+        match diff_obj with
+        | Del lst -> 
+          Format.fprintf fmt "Del"; 
+          Format.fprintf fmt "[";
+          List.iter (fun x -> Format.fprintf fmt "%a, " Obj.format x) lst;
+          Format.fprintf fmt "]";
+        | Eq lst -> 
+          Format.fprintf fmt "Eq";
+          Format.fprintf fmt "[";
+          List.iter (fun x -> Format.fprintf fmt "%a, " Obj.format x) lst;
+          Format.fprintf fmt "]";
+        | Add lst -> 
+          Format.fprintf fmt "Add";
+          Format.fprintf fmt "[";
+          List.iter (fun x -> Format.fprintf fmt "%a, " Obj.format x) lst;
+          Format.fprintf fmt "]";) t;
+    Format.fprintf fmt "]";
 end
