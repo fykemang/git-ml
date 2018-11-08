@@ -1,7 +1,13 @@
 open GitTree
 open Unix
 open Util
+
 module StrMap = Map.Make(String)
+module String = struct
+  include String
+  let format fmt x = Format.fprintf fmt "%s" x
+end
+module Diff_eng = Diff_engine.Make(String)
 
 type filename = string
 type file_content = string
@@ -321,7 +327,6 @@ let commit_command message branch =
 let commit_command_default () = 
   commit_command "no commit message provided" "master" 
 
-
 let rm address =
   try
     is_outside_path address;
@@ -345,16 +350,37 @@ let rm address =
   | Not_found -> print_endline ("fatal: " ^ address ^ 
                                 " did not match any stored or tracked files.")
 
+open Diff_eng
+let rec print_diff_obj_lst lst = match lst with
+  | [] -> ()
+  | hd::tl -> 
+    match hd with
+    | Del s -> List.iter (fun str -> Format.printf "- %s\n" str) s;
+      print_diff_obj_lst tl
+    | Add s ->  List.iter (fun str -> Format.printf "+ %s\n" str) s;
+      print_diff_obj_lst tl
+    | Eq s -> List.iter (fun str -> Format.printf "= %s\n" str) s;
+      print_diff_obj_lst tl
+
 let diff () =
   let commit_idx = commit_idx () in
   let wrking_idx = wrking_tree_idx () in
   let diff_idx = StrMap.fold (
       fun file content acc ->
-        if content <> StrMap.find file wrking_idx
-        then failwith "Insert diff function here"
+        let wrk_dir_content = StrMap.find file wrking_idx in
+        if content <> wrk_dir_content
+        then
+          let content_lines = String.split_on_char '\n' content in
+          let wrk_content_lines = String.split_on_char '\n' wrk_dir_content in
+          let diff_list = Diff_eng.diff content_lines wrk_content_lines in
+          StrMap.add file diff_list acc
         else acc
     ) commit_idx StrMap.empty in
-  StrMap.iter (fun file diff -> Printf.printf "%s\n%s" file diff) diff_idx
+  StrMap.iter (fun file diff ->
+      Format.printf "%a\n" Diff_eng.format_diff diff;
+      Printf.printf "File: %s\n" file;
+      print_diff_obj_lst diff
+    ) diff_idx
 
 (*------------------------------status code ---------------------------------*)
 
