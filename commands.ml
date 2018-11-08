@@ -585,3 +585,32 @@ let status () =
   if List.length lst2 > 0 then
     print_endline("The following files have been modified since the last commit:");
   print_list lst2
+
+(** [ancestor_list branch] is the list of ancestor commits on branch [branch] *)
+let ancestor_list branch =  
+  let rec ancestor_list_helper (acc:string list) (line_list:string list) =
+    match line_list with 
+    | [] -> acc 
+    | h::t -> 
+      let hash = (String.split_on_char ' ' h |> List.hd) in 
+      ancestor_list_helper (hash::acc) t
+  in
+  let ic = open_in (".git-ml/logs/refs/heads/" ^ branch) in
+  let log_string = read_file ic in
+  close_in ic; 
+  let line_lst = log_string |> String.split_on_char '\n' |> List.rev in
+  ancestor_list_helper ((line_lst |> List.hd |> String.split_on_char ' ' |> 
+                         List.tl |> List.hd)::[]) line_lst
+
+(** [first_commit commit_list] is the first commit of a given [commit_list] 
+    Requires:
+    [commit_lst] is a valid zero terminating commit list, like one given from
+    [ancestor_list]*)
+let rec first_commit (commit_lst:string list) =
+  match commit_lst with 
+  | [] -> failwith "empty commit list error"
+  | h::zero::[] -> h
+  | h::t -> first_commit t
+
+let rec first_common_commit commit_list target_hash =
+  failwith "unimplemented"
