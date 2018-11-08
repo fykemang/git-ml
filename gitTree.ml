@@ -151,13 +151,17 @@ let hash_of_git_object = function
   | Ref s -> hash_str ("Ref " ^ s)
   | _ -> failwith "hash_of_git_object does not apply to that GitObject type"
 
-let rec mem_hash (hash : string) (t : t) : bool =
-  match t with
-  | Leaf -> false
-  | Node (obj, lst) -> 
-    if hash_of_git_object obj = hash then true
-    else List.fold_left (fun acc t -> mem_hash hash t) false lst
-
 let git_object_of_tree = function
   | Leaf -> failwith "Can't get git_object of Leaf"
   | Node (o,lst) -> o 
+
+let rec mem_hash (hash : string) (t : t) : bool =
+  match t with
+  | Leaf -> false
+  | Node (obj, lst) -> match obj with
+    | Tree_Object s | File s | Commit s | Ref s -> 
+      if lst = [] then failwith "ERROR: empty list error in mem_hash"
+      else List.fold_left (fun acc t -> mem_hash hash t) false lst
+    | Blob s -> let obj_hash = ("Blob " ^ s) |> hash_str in
+      if obj_hash = hash then true
+      else List.fold_left (fun acc t -> mem_hash hash t) false lst

@@ -16,8 +16,7 @@ val remove_object_tag : string -> string -> string
 
 (** [read_file ?s file_chnl] reads the [file_chnl] and outputs the content to 
     [s], it closes [file_chnl] after reaching the end of file. *)
-val read_file : ?s:string -> in_channel -> string
-
+val read_file : ?s:string list -> in_channel -> string
 
 (** [read_dir handle s] reads the directory [dir] and outputs the filenames to
     [s], it closes [handle] after reaching the end of file. *)

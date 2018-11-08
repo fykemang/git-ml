@@ -67,3 +67,6 @@ val commit_command_default: unit -> unit
 val checkout_path: string -> unit
 
 val checkout_branch: string -> unit
+(** [diff ()] prints out any differences between files in the repository
+    and the working directory *)
+val diff : unit -> unit

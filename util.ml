@@ -9,14 +9,13 @@ let print_hash_str s = print_endline (hash_str s)
 let remove_object_tag tag s = 
   Str.replace_first (Str.regexp_string (tag ^ " ")) "" s
 
-let rec read_file ?s:(s = "") file_chnl =
+let rec read_file ?s:(s = []) file_chnl =
   try
     let cur_line = input_line file_chnl in
-    read_file file_chnl ~s: (s ^ cur_line ^ "\n")
+    read_file file_chnl ~s: (cur_line::s)
   with
   | End_of_file -> close_in file_chnl;
-    if (remove_object_tag "Blob" s) = "\n" 
-    then "Blob " ^ "" else s
+    s |> List.rev |> String.concat "\n"
 
 let rec read_dir_filenames handle s =
   try
