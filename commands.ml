@@ -632,5 +632,5 @@ let invoke_status status msg =
 
 let status () = 
   invoke_status status1 "The following files are about to be commited:";
-  (*invoke_status status2 "The following files have been modified since the last commit:";*) 
-  (*invoke_status status3 "The following files are untracked:" *)
+  invoke_status status2 "The following files have been modified since the last commit:"; 
+  invoke_status status3 "The following files are untracked:" 
