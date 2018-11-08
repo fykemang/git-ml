@@ -146,11 +146,14 @@ let rec pp_git_tree ?acc:(acc = "") (tree:t) =
            (pp_git_tree_children lst)
 
 let hash_of_git_object = function
-  | Tree_Object s -> hash_str ("Tree_Object " ^ s)
   | Blob s -> hash_str ("Blob " ^ s)
-  | File s -> hash_str ("File " ^ s)
   | Commit s -> hash_str ("Commit " ^ s)
   | Ref s -> hash_str ("Ref " ^ s)
+  | _ -> failwith "hash_of_git_object does not apply to that GitObject type"
+
+let git_object_of_tree = function
+  | Leaf -> failwith "Can't get git_object of Leaf"
+  | Node (o,lst) -> o 
 
 let rec mem_hash (hash : string) (t : t) : bool =
   match t with
