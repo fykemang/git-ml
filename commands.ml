@@ -551,7 +551,7 @@ let rec find_file (address : string) (filename : string) (tree : GitTree.t) : st
       (level_addr : string) 
       (l: GitTree.t list) : string = 
     match l with
-    | [] -> "not found"
+    | [] -> ""
     | Leaf::t-> failwith "there should be no leaf in the tree"
     | Node (o, lst) as node :: t -> 
       let potential_hash = find_file level_addr filename node in 
@@ -560,15 +560,18 @@ let rec find_file (address : string) (filename : string) (tree : GitTree.t) : st
   in
   match tree with
   | Leaf -> failwith "there should be no Leaf in the tree"
-  | Node (Tree_Object treeob, l) -> if treeob <> "not found" then find_help_children 
-        filename treeob l
-    else find_help_children 
-        filename (address ^ "/" ^ treeob) l
+  | Node (Tree_Object treeob, l) -> 
+    if address ^ treeob = ""  
+    then find_help_children filename "" l
+    else if address = "" && treeob <> "" 
+    then find_help_children filename treeob l 
+    else find_help_children filename (address ^ "/" ^ treeob) l
   | Node (File f, l) -> 
-    if f = filename then (get_file's_blob_hash l) else "not found"
+    if f = filename then (get_file's_blob_hash l) else ""
   | Node (Blob b, l) -> failwith "cannot reach any blob"
   | Node (Commit c, l) -> failwith "cannot reach any commit"
   | Node (Ref r, l) -> failwith "cannot reach any ref"
+
 
 let file_changed (filename : string) (hash : string) : bool = 
   let hash_in_head = find_file "" filename (current_head_to_git_tree ()) in 
@@ -583,7 +586,7 @@ let status1 () : string list =
   List.split bindings |> fst
 
 let untracked filename = 
-  (find_file "" filename (current_head_to_git_tree ())) = "not found"
+  (find_file "" filename (current_head_to_git_tree ())) = ""
 
 (* dir on its own, just the directory name, prefix + dir is whole directory name *)
 let rec read_dir (dir : string) (prefix: string) =
@@ -612,5 +615,5 @@ let invoke_status status msg =
 
 let status () = 
   invoke_status status1 "The following files are about to be commited:";
-  invoke_status status2 "The following files have been modified since the last commit:";
-  invoke_status status3 "The following files are untracked:"
+  (*invoke_status status2 "The following files have been modified since the last commit:";*) 
+  (*invoke_status status3 "The following files are untracked:" *)
