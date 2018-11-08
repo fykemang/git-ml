@@ -34,6 +34,9 @@ module Make (Obj : Object) = struct
   module ObjMap = Map.Make(Obj)
   module IntMap = Map.Make(Int)
 
+  (** [map_to_indice lst] is [int list Objmap.t] where the keys are
+      elements of [lst] and the values are [int list] where each int list 
+      represents the indices at which an element of [lst] occurs *)
   let map_to_indice lst =
     let lst' = List.mapi (fun i obj -> i, obj) lst in
     List.fold_left (fun acc (i, obj) -> 
@@ -76,11 +79,12 @@ module Make (Obj : Object) = struct
       [(st_lst, st_lst', seq)] where st_lst and st_lst' are the indices 
       where the longest_subsequence common to both lst and lst' begin 
       respectively and [seq] is the length of the longest common
-      subsequence. *)
+      subsequence *)
   let longest_subsequence lst lst' =
     let obj_to_indice = map_to_indice lst in
     subseq_helper obj_to_indice lst'
 
+  (** [fold_n f acc n lst] is f (... (f (f a )))  *)
   let rec fold_n f ?acc:(acc=[]) n = function
     | [] -> acc, []
     | hd::tl as lst -> if n = 0 then acc, lst 
@@ -127,17 +131,17 @@ module Make (Obj : Object) = struct
         | Del lst -> 
           Format.fprintf fmt "Del"; 
           Format.fprintf fmt "[";
-          List.iter (fun x -> Format.fprintf fmt "%a, " Obj.format x) lst;
+          List.iter (fun x -> Format.fprintf fmt "%a; " Obj.format x) lst;
           Format.fprintf fmt "]";
         | Eq lst -> 
           Format.fprintf fmt "Eq";
           Format.fprintf fmt "[";
-          List.iter (fun x -> Format.fprintf fmt "%a, " Obj.format x) lst;
+          List.iter (fun x -> Format.fprintf fmt "%a; " Obj.format x) lst;
           Format.fprintf fmt "]";
         | Add lst -> 
           Format.fprintf fmt "Add";
           Format.fprintf fmt "[";
-          List.iter (fun x -> Format.fprintf fmt "%a, " Obj.format x) lst;
+          List.iter (fun x -> Format.fprintf fmt "%a; " Obj.format x) lst;
           Format.fprintf fmt "]";) t;
     Format.fprintf fmt "]";
 end

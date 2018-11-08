@@ -1,5 +1,3 @@
-
-
 type filename = string
 type file_content = string
 type file_object = filename * file_content
@@ -19,7 +17,7 @@ val hash_object : string -> unit
 val hash_object_default: string -> unit
 
 (** [log] prints a formatted string detailing all commits on the current
-    branch*)
+    branch *)
 val log : unit -> unit
 
 (** [ls_tree s] is the structure of a tree given [s] its hashed
