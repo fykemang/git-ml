@@ -398,11 +398,13 @@ let compare_files blob_obj file_name =
 let rec compare_file_blob prefix f l acc = 
   match l with
   | [Node (Blob b, l')] -> begin
-      if prefix <> "" then
-        if compare_files b (prefix ^ "/" ^ f) 
+      if prefix ^ f = "" 
+      then if compare_files b ""
         then acc else f::acc
-      else
-      if compare_files b f 
+      else if prefix = "" 
+      then if compare_files b f 
+        then acc else f::acc
+      else if compare_files b (prefix ^ "/" ^ f)
       then acc else f::acc
     end
   | _ -> failwith "A file must have one and only one blob child"
@@ -423,9 +425,12 @@ let rec status2_help address acc tree =
   in
   match tree with
   | Leaf -> failwith "there should be no Leaf in the tree"
-  | Node (Tree_Object treeob, l) -> if treeob <> "" then
-      status2_help_children (address ^ "/" ^ treeob) acc l 
-    else status2_help_children treeob acc l
+  | Node (Tree_Object treeob, l) -> 
+    if address ^ treeob = "" 
+    then status2_help_children "" acc l 
+    else if address = "" && treeob <> "" 
+    then status2_help_children treeob acc l 
+    else status2_help_children (address ^ "/" ^ treeob) acc l
   | Node (File f, l) -> compare_file_blob address f l acc
   | Node (Blob b, l) -> failwith "cannot reach any blob"
   | Node (Commit c, l) -> failwith "cannot reach any commit"
@@ -555,10 +560,12 @@ let rec find_file (address : string) (filename : string) (tree : GitTree.t) : st
   in
   match tree with
   | Leaf -> failwith "there should be no Leaf in the tree"
-  | Node (Tree_Object treeob, l) -> if treeob <> "" then find_help_children 
-        filename treeob l
-    else find_help_children 
-        filename (address ^ "/" ^ treeob) l
+  | Node (Tree_Object treeob, l) -> 
+    if address ^ treeob = ""  
+    then find_help_children filename "" l
+    else if address = "" && treeob <> "" 
+    then find_help_children filename treeob l 
+    else find_help_children filename (address ^ "/" ^ treeob) l
   | Node (File f, l) -> 
     if f = filename then (get_file's_blob_hash l) else ""
   | Node (Blob b, l) -> failwith "cannot reach any blob"
