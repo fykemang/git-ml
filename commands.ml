@@ -16,6 +16,8 @@ type file_content = string
 type file_object = filename * file_content
 
 exception FileNotFound of string 
+exception No_Commits
+
 let init () = begin
   try
     let curr_dir = Unix.getcwd () in
@@ -530,14 +532,6 @@ let rec first_common_commit commit_list target_hash =
   failwith "unimplemented"
 
 
-
-
-
-
-
-
-
-
 (*------------------------------status code ---------------------------------*)
 (** compare_files *)
 let compare_files blob_obj file_name = 
@@ -587,7 +581,7 @@ let rec status2_help address acc tree =
 
 (* difference between working directory (tree) and current commit: 
    paths that have differences between the working tree and the index file *)
-let status2 () = print_endline "start status2"; status2_help "" [] (current_head_to_git_tree ())
+let status2 () = status2_help "" [] (current_head_to_git_tree ())
 
 let rec print_list = function 
   | [] -> ()
@@ -671,7 +665,10 @@ let invoke_status status msg =
   print_list lst
 
 let status () = 
-  invoke_status status1 "The following files are about to be commited:"
+  let cur_tree = current_head_to_git_tree () in 
+  if cur_tree = GitTree.empty then print_endline "No commits"
+  else 
+    invoke_status status1 "The following files are about to be commited:"
 (*invoke_status status2 "The following files have been modified since the last commit:";*) 
 (*invoke_status status3 "The following files are untracked:" *)
 
