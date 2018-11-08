@@ -377,7 +377,6 @@ let diff () =
         else acc
     ) commit_idx StrMap.empty in
   StrMap.iter (fun file diff ->
-      Format.printf "%a\n" Diff_eng.format_diff diff;
       Printf.printf "File: %s\n" file;
       print_diff_obj_lst diff
     ) diff_idx
