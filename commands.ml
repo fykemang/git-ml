@@ -408,65 +408,6 @@ let diff () = try
     print_endline ("fatal: Not a git-ml repository" ^
                    " (or any of the parent directories): .git-ml")
 
-(*------------------------------status code ---------------------------------*)
-(** compare_files *)
-let compare_files blob_obj file_name = 
-  let content = read_file (file_name |> open_in) in
-  hash_str "Blob " ^ content = hash_str "Blob " ^ blob_obj
-
-let rec compare_file_blob prefix f l acc = 
-  match l with
-  | [Node (Blob b, l')] -> begin
-      if prefix ^ f = "" 
-      then if compare_files b ""
-        then acc else f::acc
-      else if prefix = "" 
-      then if compare_files b f 
-        then acc else f::acc
-      else if compare_files b (prefix ^ "/" ^ f)
-      then acc else f::acc
-    end
-  | _ -> failwith "A file must have one and only one blob child"
-
-let rec status2_help address acc tree = 
-  (** [status1_help_children acc' l] is the updated [acc'] after processing 
-      all treenodes in [l]. *)
-  let rec status2_help_children 
-      (level_addr : string) 
-      (acc': string list) 
-      (l: GitTree.t list) : string list = 
-    match l with
-    | [] -> acc'
-    | Leaf::t-> failwith "there should be no leaf"
-    | Node (o, lst)::t ->   
-      let updated = status2_help level_addr acc' (Node (o, lst)) in
-      status2_help_children level_addr (updated @ acc') t 
-  in
-  match tree with
-  | Leaf -> failwith "there should be no Leaf in the tree"
-  | Node (Tree_Object treeob, l) -> 
-    if address ^ treeob = "" 
-    then status2_help_children "" acc l 
-    else if address = "" && treeob <> "" 
-    then status2_help_children treeob acc l 
-    else status2_help_children (address ^ "/" ^ treeob) acc l
-  | Node (File f, l) -> compare_file_blob address f l acc
-  | Node (Blob b, l) -> failwith "cannot reach any blob"
-  | Node (Commit c, l) -> failwith "cannot reach any commit"
-  | Node (Ref r, l) -> failwith "cannot reach any ref"
-
-(* difference between working directory (tree) and current commit: 
-   paths that have differences between the working tree and the index file *)
-let status2 () = print_endline "start status2"; status2_help "" [] (current_head_to_git_tree ())
-
-let rec print_list = function 
-  | [] -> ()
-  | h::t -> print_endline h; print_list t
-
-(* untracked files, need to add then commit: 
-   paths in the working tree that are not tracked by Git 
-   let status3 = failwith "TODO" *)
-
 let rm address =
   try
     is_outside_path address;
@@ -558,6 +499,65 @@ let checkout_branch branch =
   else print_endline ("Switching to branch " ^ branch);
   checkout_path "."
 
+(*------------------------------status code ---------------------------------*)
+(** compare_files *)
+let compare_files blob_obj file_name = 
+  let content = read_file (file_name |> open_in) in
+  hash_str "Blob " ^ content = hash_str "Blob " ^ blob_obj
+
+let rec compare_file_blob prefix f l acc = 
+  match l with
+  | [Node (Blob b, l')] -> begin
+      if prefix ^ f = "" 
+      then if compare_files b ""
+        then acc else f::acc
+      else if prefix = "" 
+      then if compare_files b f 
+        then acc else f::acc
+      else if compare_files b (prefix ^ "/" ^ f)
+      then acc else f::acc
+    end
+  | _ -> failwith "A file must have one and only one blob child"
+
+let rec status2_help address acc tree = 
+  (** [status1_help_children acc' l] is the updated [acc'] after processing 
+      all treenodes in [l]. *)
+  let rec status2_help_children 
+      (level_addr : string) 
+      (acc': string list) 
+      (l: GitTree.t list) : string list = 
+    match l with
+    | [] -> acc'
+    | Leaf::t-> failwith "there should be no leaf"
+    | Node (o, lst)::t ->   
+      let updated = status2_help level_addr acc' (Node (o, lst)) in
+      status2_help_children level_addr (updated @ acc') t 
+  in
+  match tree with
+  | Leaf -> failwith "there should be no Leaf in the tree"
+  | Node (Tree_Object treeob, l) -> 
+    if address ^ treeob = "" 
+    then status2_help_children "" acc l 
+    else if address = "" && treeob <> "" 
+    then status2_help_children treeob acc l 
+    else status2_help_children (address ^ "/" ^ treeob) acc l
+  | Node (File f, l) -> compare_file_blob address f l acc
+  | Node (Blob b, l) -> failwith "cannot reach any blob"
+  | Node (Commit c, l) -> failwith "cannot reach any commit"
+  | Node (Ref r, l) -> failwith "cannot reach any ref"
+
+(* difference between working directory (tree) and current commit: 
+   paths that have differences between the working tree and the index file *)
+let status2 () = print_endline "start status2"; status2_help "" [] (current_head_to_git_tree ())
+
+let rec print_list = function 
+  | [] -> ()
+  | h::t -> print_endline h; print_list t
+
+(* untracked files, need to add then commit: 
+   paths in the working tree that are not tracked by Git 
+   let status3 = failwith "TODO" *)
+
 let get_file's_blob_hash = function
   | [ Node (Blob b, l') ] -> b
   | _ -> failwith "A file must have one and only one blob child"
@@ -632,6 +632,35 @@ let invoke_status status msg =
   print_list lst
 
 let status () = 
-  invoke_status status1 "The following files are about to be commited:";
-  (*invoke_status status2 "The following files have been modified since the last commit:";
-    invoke_status status3 "The following files are untracked:"*)
+  invoke_status status1 "The following files are about to be commited:"
+(*invoke_status status2 "The following files have been modified since the last commit:";*) 
+(*invoke_status status3 "The following files are untracked:" *)
+
+(** [ancestor_list branch] is the list of ancestor commits on branch [branch] *)
+let ancestor_list branch =  
+  let rec ancestor_list_helper (acc:string list) (line_list:string list) =
+    match line_list with 
+    | [] -> acc 
+    | h::t -> 
+      let hash = (String.split_on_char ' ' h |> List.hd) in 
+      ancestor_list_helper (hash::acc) t
+  in
+  let ic = open_in (".git-ml/logs/refs/heads/" ^ branch) in
+  let log_string = read_file ic in
+  close_in ic; 
+  let line_lst = log_string |> String.split_on_char '\n' |> List.rev in
+  ancestor_list_helper ((line_lst |> List.hd |> String.split_on_char ' ' |> 
+                         List.tl |> List.hd)::[]) line_lst
+
+(** [first_commit commit_list] is the first commit of a given [commit_list] 
+    Requires:
+    [commit_lst] is a valid zero terminating commit list, like one given from
+    [ancestor_list]*)
+let rec first_commit (commit_lst:string list) =
+  match commit_lst with 
+  | [] -> failwith "empty commit list error"
+  | h::zero::[] -> h
+  | h::t -> first_commit t
+
+let rec first_common_commit commit_list target_hash =
+  failwith "unimplemented"

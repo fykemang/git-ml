@@ -11,11 +11,11 @@ let remove_object_tag tag s =
 
 let rec read_file ?s:(s = []) file_chnl =
   try
-    let cur_line = input_line file_chnl in
-    read_file file_chnl ~s: (cur_line::s)
+    let cur_byte = input_char file_chnl in
+    read_file file_chnl ~s: ((String.make 1 cur_byte)::s)
   with
   | End_of_file -> close_in file_chnl;
-    s |> List.rev |> String.concat "\n"
+    s |> List.rev |> String.concat ""
 
 let rec read_dir_filenames handle s =
   try
