@@ -220,9 +220,8 @@ let wr_to_idx (idx : string StrMap.t) : unit =
   close_out out_ch;
   chdir ".."
 
-(** [read_idx curr_idx] takes a string list [curr_idx] representing the current
-    entries in the index and returns a mapping from each entries filename
-    to content hash *)
+(** [read_idx ()] is a mapping from each entries filename
+    to content hash based on the current index *)
 let read_idx () : string StrMap.t =
   chdir ".git-ml";
   let curr_idx = open_in_gen [Open_creat] 0o700 "index" 
@@ -370,24 +369,42 @@ let rec print_diff_obj_lst lst = match lst with
     | Eq s -> List.iter (fun str -> Format.printf "= %s\n" str) s;
       print_diff_obj_lst tl
 
-let diff () =
-  let commit_idx = commit_idx () in
-  let wrking_idx = wrking_tree_idx () in
-  let diff_idx = StrMap.fold (
-      fun file content acc ->
-        let wrk_dir_content = StrMap.find file wrking_idx in
-        if content <> wrk_dir_content
-        then
-          let content_lines = String.split_on_char '\n' content in
-          let wrk_content_lines = String.split_on_char '\n' wrk_dir_content in
-          let diff_list = Diff_eng.diff content_lines wrk_content_lines in
-          StrMap.add file diff_list acc
-        else acc
-    ) commit_idx StrMap.empty in
-  StrMap.iter (fun file diff ->
-      Printf.printf "File: %s\n" file;
-      print_diff_obj_lst diff
-    ) diff_idx
+(** [pp_list pp_elt lst] pretty-prints list [lst], using [pp_elt]
+    to pretty-print each element of [lst]. *)
+let pp_list pp_elt lst =
+  let pp_elts lst =
+    let rec loop n acc = function
+      | [] -> acc
+      | [h] -> acc ^ pp_elt h
+      | h1::(h2::t as t') -> loop (n+1) (acc ^ (pp_elt h1) ^ "; ") t'
+    in loop 0 "" lst
+  in "[" ^ pp_elts lst ^ "]"
+
+let diff () = try
+    let commit_idx = commit_idx () in
+    let wrking_idx = wrking_tree_idx () in
+    let diff_idx = StrMap.fold (
+        fun file content acc ->
+          let wrk_dir_content = StrMap.find file wrking_idx in
+          if content <> wrk_dir_content
+          then
+            let content_lines = String.split_on_char '\n' content in
+            let str1 = pp_list (fun s -> s) content_lines in
+            let wrk_content_lines = String.split_on_char '\n' wrk_dir_content in
+            let str2 = pp_list (fun s -> s) wrk_content_lines in
+            print_endline (string_of_bool (str1 = str2));
+            let diff_list = Diff_eng.diff content_lines wrk_content_lines in
+            StrMap.add file diff_list acc
+          else acc
+      ) commit_idx StrMap.empty in
+    StrMap.iter (fun file diff ->
+        Printf.printf "File: %s\n" file;
+        print_diff_obj_lst diff
+      ) diff_idx
+  with 
+  | Unix_error (ENOENT, name, ".git-ml") ->
+    print_endline ("fatal: Not a git-ml repository" ^
+                   " (or any of the parent directories): .git-ml")
 
 (*------------------------------status code ---------------------------------*)
 (** compare_files *)
