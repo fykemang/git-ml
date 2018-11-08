@@ -559,4 +559,6 @@ let status () =
   let lst2 = status2 () |> List.sort_uniq (String.compare) in 
   if List.length lst2 > 0 then
     print_endline("The following files have been modified since the last commit:");
-  print_list lst2
+  print_list lst2;
+  if  List.length lst1 = 0 && List.length lst2 = 0
+  then print_endline("Everyting up to date");
