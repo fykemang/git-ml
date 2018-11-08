@@ -24,7 +24,7 @@ let rec read_file ?s:(s = "") file_chnl =
   seek_in file_chnl pos;
   if not early_term then 
     read_file file_chnl ~s: (s ^ line ^ "\n")
-  else s ^ line
+  else (close_in file_chnl; (s ^ line))
 
 
 let rec read_dir_filenames handle s =
