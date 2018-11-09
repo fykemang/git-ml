@@ -392,22 +392,23 @@ let diff () = try
           if content <> wrk_dir_content
           then
             let content_lines = String.split_on_char '\n' content in
-            let str1 = pp_list (fun s -> s) content_lines in
             let wrk_content_lines = String.split_on_char '\n' wrk_dir_content in
-            let str2 = pp_list (fun s -> s) wrk_content_lines in
-            print_endline (string_of_bool (str1 = str2));
             let diff_list = Diff_eng.diff content_lines wrk_content_lines in
             StrMap.add file diff_list acc
           else acc
       ) commit_idx StrMap.empty in
     StrMap.iter (fun file diff ->
+        Printf.printf "------------------------------------------------\n";
         Printf.printf "File: %s\n" file;
-        print_diff_obj_lst diff
+        Printf.printf "------------------------------------------------\n";
+        print_diff_obj_lst diff;
+        Printf.printf "------------------------------------------------\n\n"
       ) diff_idx
   with 
   | Unix_error (ENOENT, name, ".git-ml") ->
     print_endline ("fatal: Not a git-ml repository" ^
                    " (or any of the parent directories): .git-ml")
+  | Sys_error s -> print_endline s
 
 let rm address =
   try
@@ -580,7 +581,11 @@ let get_file's_blob_hash = function
   | [ Node (Blob b, l') ] -> b
   | _ -> failwith "A file must have one and only one blob child"
 
-let rec find_file (address : string) (filename : string) (acc : string) (tree : GitTree.t) : string = 
+let rec find_file 
+    (address : string) 
+    (filename : string) 
+    (acc : string) 
+    (tree : GitTree.t) : string = 
   let rec find_help_children
       (filename: string)
       (level_addr : string) 
@@ -623,9 +628,9 @@ let untracked filename =
 (* dir on its own, just the directory name, prefix + dir is whole directory name *)
 let rec read_dir (dir : string) (prefix: string) =
   (* prefix + filename = the whole path *)
-  let rec read_dir_help 
+  let rec read_dir_help
       (acc: string list) 
-      (handle : Unix.dir_handle) 
+      (handle : Unix.dir_handle)
       (prefix: string) =
     try
       let n = Unix.readdir handle in
