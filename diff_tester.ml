@@ -18,8 +18,10 @@ let make_diff_test
     fun _ -> assert_equal result (diff lst lst')
   )
 
-let test1 = ["The"; "quick"; "brown"; "fox"; "jumps"; "over"; "the"; "lazy"; "dog"]
-let test1' = ["The"; "slow"; "blue"; "cheese"; "drips"; "over"; "the"; "lazy"; "carrot"]
+let test1 = ["The"; "quick"; "brown"; "fox"; "jumps"; "over"; "the"; 
+             "lazy"; "dog"]
+let test1' = ["The"; "slow"; "blue"; "cheese"; "drips"; "over"; "the"; 
+              "lazy"; "carrot"]
 let test1_res = [Eq ["The"];
                  Del ["quick"; "brown"; "fox"; "jumps"];
                  Add ["slow"; "blue"; "cheese"; "drips"];

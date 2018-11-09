@@ -136,6 +136,9 @@ module Make (Obj : Object) = struct
     let kfst', ksnd' = split rev_snd' k in
     (fst, List.rev ksnd, List.rev ksnd', List.rev kfst)
 
+  (** [proc_diff lst lst'] compares [lst] and [lst'] returning 
+      a list of diff_objects which represent the differences
+      between the two lists *)
   let rec proc_diff lst lst' = 
     match lst, lst' with
     | [], [] -> []
