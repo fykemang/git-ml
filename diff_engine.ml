@@ -136,6 +136,9 @@ module Make (Obj : Object) = struct
     let kfst', ksnd' = split rev_snd' k in
     (fst, List.rev ksnd, List.rev ksnd', List.rev kfst)
 
+  (** [proc_diff lst lst'] compares [lst] and [lst'] returning 
+      a list of diff_objects which represent the differences
+      between the two lists *)
   let rec proc_diff lst lst' = 
     match lst, lst' with
     | [], [] -> []
@@ -154,8 +157,12 @@ module Make (Obj : Object) = struct
 
   let rec diff lst lst' =
     let head, cmp, cmp', tail = optimize lst lst' in
-    [Eq tail] |> tl_append (proc_diff cmp cmp') |> tl_append [Eq head]
-
+    match head, tail with
+    | [], [] -> proc_diff cmp cmp'
+    | [], tl -> [Eq tl] |> tl_append (proc_diff cmp cmp')
+    | hd, [] -> proc_diff cmp cmp' |> tl_append [Eq hd]
+    | hd, tl -> [Eq tl] |> tl_append (proc_diff cmp cmp') |> tl_append [Eq hd]
+    
   let format_diff fmt t = 
     Format.fprintf fmt "[";
     List.iter (fun diff_obj -> 
