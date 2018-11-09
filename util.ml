@@ -9,13 +9,23 @@ let print_hash_str s = print_endline (hash_str s)
 let remove_object_tag tag s = 
   Str.replace_first (Str.regexp_string (tag ^ " ")) "" s
 
-let rec read_file ?s:(s = []) file_chnl =
-  try
-    let cur_line = input_line file_chnl in
-    read_file file_chnl ~s: (cur_line::s)
-  with
-  | End_of_file -> close_in file_chnl;
-    s |> List.rev |> String.concat "\n"
+let rec read_line_custom ?s:(s = "") file_chnl =
+  try 
+    let cur_byte = input_char file_chnl in
+    if cur_byte <> '\n' then  
+      (read_line_custom file_chnl ~s: (s ^ (String.make 1 cur_byte)))
+    else 
+      (s,false,pos_in file_chnl)
+  with 
+  | End_of_file -> (s,true, pos_in file_chnl)
+
+let rec read_file ?s:(s = "") file_chnl =
+  let (line, early_term, pos) = read_line_custom file_chnl in
+  seek_in file_chnl pos;
+  if not early_term then 
+    read_file file_chnl ~s: (s ^ line ^ "\n")
+  else (close_in file_chnl; (s ^ line))
+
 
 let rec read_dir_filenames handle s =
   try
