@@ -3,7 +3,6 @@ open Unix
 open Util
 open Sys
 
-
 module StrMap = Map.Make(String)
 module String = struct
   include String
@@ -78,13 +77,9 @@ let hash_object_default file =
   let content = read_file (file |> open_in) in
   Util.print_hash_str ("Blob " ^ content)
 
-let ls_tree s = failwith "Unimplemented"
-
 let current_branch () = 
   (read_file (open_in  ".git-ml/HEAD")) |> String.split_on_char '\n' |> List.hd 
-  |> String.split_on_char '/'  |> List.rev |> 
-  List.hd 
-
+  |> String.split_on_char '/'  |> List.rev |> List.hd 
 
 let log () =
   let branch = current_branch () in
@@ -545,16 +540,9 @@ let compare_files blob_obj file_name =
     comparing [l]. *)
 let rec compare_file_blob prefix f l acc = 
   match l with
-  | [Node (Blob b, l')] -> begin
-      if prefix ^ f = "" 
-      then if compare_files b ""
-        then acc else f::acc
-      else if prefix = "" 
-      then if compare_files b f 
-        then acc else f::acc
-      else if compare_files b (prefix ^ "/" ^ f)
-      then acc else f::acc
-    end
+  | [Node (Blob b, l')] -> 
+    let add = if prefix = "" then f else  (prefix ^ "/" ^ f) in
+    if compare_files b add then acc else f::acc
   | _ -> failwith "A file must have one and only one blob child"
 
 (** [status2_help address acc tree] is the updated [acc'] after processing 
@@ -576,11 +564,8 @@ let rec status2_help address acc tree =
   match tree with
   | Leaf -> failwith "there should be no Leaf in the tree"
   | Node (Tree_Object treeob, l) -> 
-    if address ^ treeob = "" 
-    then status2_help_children "" acc l 
-    else if address = "" && treeob <> "" 
-    then status2_help_children treeob acc l 
-    else status2_help_children (address ^ "/" ^ treeob) acc l
+    let add = if address = "" then treeob else (address ^ "/" ^ treeob) in
+    status2_help_children add acc l
   | Node (File f, l) -> compare_file_blob address f l acc
   | Node (Blob b, l) -> failwith "cannot reach any blob"
   | Node (Commit c, l) -> failwith "cannot reach any commit"
@@ -591,10 +576,6 @@ let rec status2_help address acc tree =
     tree and the index file. *)
 let status2 () = status2_help "" [] (current_head_to_git_tree ())
 
-(** [print_list lst] prints out each element of [lst]. *)
-let rec print_list = function 
-  | [] -> ()
-  | h::t -> print_endline h; print_list t
 
 (** [get_file's_blob_hash lst] is the hash of the blob represented in [lst]. *)
 let get_file's_blob_hash = function
@@ -619,11 +600,8 @@ let rec find_file address filename acc tree : string =
   match tree with
   | Leaf -> failwith "there should be no Leaf in the tree"
   | Node (Tree_Object treeob, l) -> 
-    if address ^ treeob = "" 
-    then find_help_children filename "" acc l
-    else if address = "" && treeob <> "" 
-    then find_help_children filename treeob acc l 
-    else find_help_children filename (address ^ "/" ^ treeob) acc l
+    let add = if address = "" then treeob else (address ^ "/" ^ treeob) in
+    find_help_children filename add acc l
   | Node (File f, l) -> 
     let add = if address = "" then f else address ^ "/" ^ f in
     if add = filename then (get_file's_blob_hash l) else ""
@@ -651,7 +629,10 @@ let untracked filename =
 (* dir on its own, just the directory name, prefix + dir is whole directory name *)
 let rec read_dir (dir : string) (prefix: string) =
   (* prefix + filename = the whole path *)
-  let rec read_dir_help (acc: string list) (handle : Unix.dir_handle) (prefix: string) =
+  let rec read_dir_help 
+      (acc: string list) 
+      (handle : Unix.dir_handle) 
+      (prefix: string) =
     try
       let n = Unix.readdir handle in
       if n = "." || n = ".." || n = ".git-ml" || n = ".DS_Store" || n = ".git"
@@ -671,13 +652,18 @@ let invoke_status status msg =
   let lst = status () |> List.sort_uniq (String.compare) in 
   if List.length lst > 0 then
     print_endline (msg ^ " \n");
-  print_list lst
+  List.iter (fun x -> print_endline x) lst
 
 let status () = 
   let cur_tree = current_head_to_git_tree () in 
-  if cur_tree = GitTree.empty then print_endline "No commits"
+  if cur_tree = GitTree.empty 
+  then print_endline 
+      "There is no commit yet, you can first add files and then commit."
   else 
-    invoke_status status1 "The following files are about to be commited:";
-  invoke_status status2 "The following files have been modified since the last commit:";
-  invoke_status status3 "The following files are untracked:"
+    invoke_status status1 
+      "The following files are about to be commited:";
+  invoke_status status2 
+    "The following files have been modified since the last commit:";
+  invoke_status status3 
+    "The following files are untracked:"
 

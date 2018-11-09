@@ -4,6 +4,7 @@ MLS=$(MODULES:=.ml)
 MLIS=$(MODULES:=.mli)
 TEST=test.byte
 TEST_CMD=test_commands.byte
+TEST_DIFF=diff_tester.byte
 MAIN=main.byte
 OCAMLBUILD=ocamlbuild -use-ocamlfind
 PKGS=oUnit,unix,yojson,str, ANSITerminal
@@ -16,6 +17,9 @@ build:
 
 test:
 	$(OCAMLBUILD) -tag debug $(TEST) && ./$(TEST)
+
+test-diff:
+	$(OCAMLBUILD) -tag debug $(TEST_DIFF) && ./$(TEST_DIFF)
 
 test-cmd:
 	$(OCAMLBUILD) -tag debug $(TEST_CMD) && ./$(TEST_CMD)
