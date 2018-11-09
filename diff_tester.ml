@@ -1,7 +1,5 @@
 open OUnit2
 
-open OUnit2
-
 module String = struct
   include String
   let format fmt x = Format.fprintf fmt "%s" x
