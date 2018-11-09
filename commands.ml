@@ -535,13 +535,14 @@ let rec first_commit (commit_lst:string list) =
 let rec first_common_commit commit_list target_hash =
   failwith "unimplemented"
 
-
-(*------------------------------status code ---------------------------------*)
-(** compare_files *)
+(** [compare_files blob_obj file_name] is true if the file with name[file_name]
+    has the same content as in [blob_obj]. *)
 let compare_files blob_obj file_name = 
   let content = read_file (file_name |> open_in) in
   hash_str "Blob " ^ content = hash_str "Blob " ^ blob_obj
 
+(** [compare_file_blob prefix f l acc] is the updated [acc'] after 
+    comparing [l]. *)
 let rec compare_file_blob prefix f l acc = 
   match l with
   | [Node (Blob b, l')] -> begin
@@ -556,8 +557,10 @@ let rec compare_file_blob prefix f l acc =
     end
   | _ -> failwith "A file must have one and only one blob child"
 
+(** [status2_help address acc tree] is the updated [acc'] after processing 
+    [tree].  *)
 let rec status2_help address acc tree = 
-  (** [status1_help_children acc' l] is the updated [acc'] after processing 
+  (** [status2_help_children acc' l] is the updated [acc'] after processing 
       all treenodes in [l]. *)
   let rec status2_help_children 
       (level_addr : string) 
@@ -583,23 +586,24 @@ let rec status2_help address acc tree =
   | Node (Commit c, l) -> failwith "cannot reach any commit"
   | Node (Ref r, l) -> failwith "cannot reach any ref"
 
-(* difference between working directory (tree) and current commit: 
-   paths that have differences between the working tree and the index file *)
+(** [status2 ()] are the files that are different between working directory 
+    (tree) and current commit: paths that have differences between the working 
+    tree and the index file. *)
 let status2 () = status2_help "" [] (current_head_to_git_tree ())
 
+(** [print_list lst] prints out each element of [lst]. *)
 let rec print_list = function 
   | [] -> ()
   | h::t -> print_endline h; print_list t
 
-(* untracked files, need to add then commit: 
-   paths in the working tree that are not tracked by Git 
-   let status3 = failwith "TODO" *)
-
+(** [get_file's_blob_hash lst] is the hash of the blob represented in [lst]. *)
 let get_file's_blob_hash = function
   | [ Node (Blob b, l') ] -> b
   | _ -> failwith "A file must have one and only one blob child"
 
-let rec find_file (address : string) (filename : string) (acc : string) (tree : GitTree.t) : string = 
+(* [find_file address filename acc tree] is the content of [filename] in 
+   [tree]. *)
+let rec find_file address filename acc tree : string = 
   let rec find_help_children
       (filename: string)
       (level_addr : string) 
@@ -627,6 +631,8 @@ let rec find_file (address : string) (filename : string) (acc : string) (tree : 
   | Node (Commit c, l) -> failwith "cannot reach any commit"
   | Node (Ref r, l) -> failwith "cannot reach any ref"
 
+(** [file_changed tree filename hash] is true if the content of [filename] 
+    has changed from [hash]. *)
 let file_changed (tree: GitTree.t) (filename : string) (hash : string) : bool = 
   let hash_in_head = find_file "" filename "" tree in 
   hash <> hash_str ("Blob " ^ hash_in_head)
