@@ -599,35 +599,35 @@ let get_file's_blob_hash = function
   | [ Node (Blob b, l') ] -> b
   | _ -> failwith "A file must have one and only one blob child"
 
-let rec find_file (address : string) (filename : string) (tree : GitTree.t) : string = 
+let rec find_file (address : string) (filename : string) (acc : string) (tree : GitTree.t) : string = 
   let rec find_help_children
       (filename: string)
       (level_addr : string) 
+      (acc' : string)
       (l: GitTree.t list) : string = 
     match l with
-    | [] -> ""
+    | [] -> acc'
     | Leaf::t-> failwith "there should be no leaf in the tree"
     | Node (o, lst) as node :: t -> 
-      let potential_hash = find_file level_addr filename node in 
-      if potential_hash = "" then find_help_children filename level_addr t 
-      else potential_hash
+      let potential_hash = find_file level_addr filename acc' node in 
+      find_help_children filename level_addr (acc' ^ potential_hash) t
   in
   match tree with
   | Leaf -> failwith "there should be no Leaf in the tree"
   | Node (Tree_Object treeob, l) -> 
     if address ^ treeob = ""  
-    then find_help_children filename "" l
+    then find_help_children filename "" acc l
     else if address = "" && treeob <> "" 
-    then find_help_children filename treeob l 
-    else find_help_children filename (address ^ "/" ^ treeob) l
+    then find_help_children filename treeob acc l 
+    else find_help_children filename (address ^ "/" ^ treeob) acc l
   | Node (File f, l) -> 
-    if f = filename then (get_file's_blob_hash l) else ""
+    if (address ^ "/" ^ f) = filename then (get_file's_blob_hash l) else ""
   | Node (Blob b, l) -> failwith "cannot reach any blob"
   | Node (Commit c, l) -> failwith "cannot reach any commit"
   | Node (Ref r, l) -> failwith "cannot reach any ref"
 
 let file_changed (tree: GitTree.t) (filename : string) (hash : string) : bool = 
-  let hash_in_head = find_file "" filename tree in 
+  let hash_in_head = find_file "" filename "" tree in 
   hash <> hash_str ("Blob " ^ hash_in_head)
 
 (* added but not committed files: 
@@ -639,7 +639,7 @@ let status1 () : string list =
   List.split bindings |> fst
 
 let untracked filename = 
-  (find_file "" filename (current_head_to_git_tree ())) = ""
+  (find_file "" filename "" (current_head_to_git_tree ())) = ""
 
 (* dir on its own, just the directory name, prefix + dir is whole directory name *)
 let rec read_dir (dir : string) (prefix: string) =
@@ -672,6 +672,6 @@ let status () =
   if cur_tree = GitTree.empty then print_endline "No commits"
   else 
     invoke_status status1 "The following files are about to be commited:"
-(*invoke_status status2 "The following files have been modified since the last commit:";*) 
+(*invoke_status status2 "The following files have been modified since the last commit:";*)
 (*invoke_status status3 "The following files are untracked:" *)
 
