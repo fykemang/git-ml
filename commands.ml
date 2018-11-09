@@ -3,7 +3,6 @@ open Unix
 open Util
 open Sys
 
-
 module StrMap = Map.Make(String)
 module String = struct
   include String
@@ -78,13 +77,9 @@ let hash_object_default file =
   let content = read_file (file |> open_in) in
   Util.print_hash_str ("Blob " ^ content)
 
-let ls_tree s = failwith "Unimplemented"
-
 let current_branch () = 
   (read_file (open_in  ".git-ml/HEAD")) |> String.split_on_char '\n' |> List.hd 
-  |> String.split_on_char '/'  |> List.rev |> 
-  List.hd 
-
+  |> String.split_on_char '/'  |> List.rev |> List.hd 
 
 let log () =
   let branch = current_branch () in
