@@ -308,9 +308,13 @@ let current_head_to_git_tree () =
   let commit_path = read_head () in
   if not (Sys.file_exists (".git-ml/" ^ commit_path))
   then empty
-  else let commit_hash = input_line (open_in (".git-ml/" ^ commit_path)) in
+  else begin
+    let ic = open_in (".git-ml/" ^ commit_path) in 
+    let commit_hash = input_line (ic) in
+    close_in ic;
     cat_string commit_hash |> String.split_on_char '\n' |> List.hd 
     |> String.split_on_char ' ' |> List.tl |> List.hd |> tree_hash_to_git_tree
+  end
 
 (** [idx_to_content ()] is a mapping from file name to file content in
     the repository based on index/git-ml *)
@@ -622,16 +626,15 @@ let rec find_file (address : string) (filename : string) (tree : GitTree.t) : st
   | Node (Commit c, l) -> failwith "cannot reach any commit"
   | Node (Ref r, l) -> failwith "cannot reach any ref"
 
-
-let file_changed (filename : string) (hash : string) : bool = 
-  let hash_in_head = find_file "" filename (current_head_to_git_tree ()) in 
+let file_changed (tree: GitTree.t) (filename : string) (hash : string) : bool = 
+  let hash_in_head = find_file "" filename tree in 
   hash <> hash_str ("Blob " ^ hash_in_head)
 
 (* added but not committed files: 
    paths that have differences between the index file and the current HEAD commit *)
 let status1 () : string list = 
   let idx = read_idx () in 
-  let updated_map = StrMap.filter file_changed idx in 
+  let updated_map = StrMap.filter (current_head_to_git_tree () |> file_changed) idx in 
   let bindings = StrMap.bindings updated_map in
   List.split bindings |> fst
 
