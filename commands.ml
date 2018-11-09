@@ -577,7 +577,6 @@ let rec status2_help address acc tree =
     tree and the index file. *)
 let status2 () = status2_help "" [] (current_head_to_git_tree ())
 
-
 (** [get_file's_blob_hash lst] is the hash of the blob represented in [lst]. *)
 let get_file's_blob_hash = function
   | [ Node (Blob b, l') ] -> b
@@ -674,4 +673,3 @@ let status () =
     "The following files have been modified since the last commit:";
   invoke_status status3 
     "The following files are untracked:"
-

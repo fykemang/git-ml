@@ -84,7 +84,8 @@ module Make (Obj : Object) = struct
     let obj_to_indice = map_to_indice lst in
     subseq_helper obj_to_indice lst'
 
-  (** [fold_n f acc n lst] is f (... (f (f a )))  *)
+  (** [fold_n f acc n lst] folds [lst] [n] times applying [f]
+      on each iteration *)
   let rec fold_n f ?acc:(acc=[]) n = function
     | [] -> acc, []
     | hd::tl as lst -> if n = 0 then acc, lst 
