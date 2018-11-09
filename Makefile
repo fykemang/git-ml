@@ -7,7 +7,7 @@ TEST_CMD=test_commands.byte
 TEST_DIFF=diff_tester.byte
 MAIN=main.byte
 OCAMLBUILD=ocamlbuild -use-ocamlfind
-PKGS=oUnit,unix,yojson,str, ANSITerminal
+PKGS=oUnit,unix,yojson,str
 
 default: build
 	utop
