@@ -621,7 +621,8 @@ let rec find_file (address : string) (filename : string) (acc : string) (tree : 
     then find_help_children filename treeob acc l 
     else find_help_children filename (address ^ "/" ^ treeob) acc l
   | Node (File f, l) -> 
-    if (address ^ "/" ^ f) = filename then (get_file's_blob_hash l) else ""
+    let add = if address = "" then f else address ^ "/" ^ f in
+    if add = filename then (get_file's_blob_hash l) else ""
   | Node (Blob b, l) -> failwith "cannot reach any blob"
   | Node (Commit c, l) -> failwith "cannot reach any commit"
   | Node (Ref r, l) -> failwith "cannot reach any ref"
