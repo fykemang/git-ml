@@ -572,10 +572,6 @@ let rec status2_help address acc tree =
    paths that have differences between the working tree and the index file *)
 let status2 () = status2_help "" [] (current_head_to_git_tree ())
 
-let rec print_list = function 
-  | [] -> ()
-  | h::t -> print_endline h; print_list t
-
 (* untracked files, need to add then commit: 
    paths in the working tree that are not tracked by Git 
    let status3 = failwith "TODO" *)
@@ -627,7 +623,10 @@ let untracked filename =
 (* dir on its own, just the directory name, prefix + dir is whole directory name *)
 let rec read_dir (dir : string) (prefix: string) =
   (* prefix + filename = the whole path *)
-  let rec read_dir_help (acc: string list) (handle : Unix.dir_handle) (prefix: string) =
+  let rec read_dir_help 
+      (acc: string list) 
+      (handle : Unix.dir_handle) 
+      (prefix: string) =
     try
       let n = Unix.readdir handle in
       if n = "." || n = ".." || n = ".git-ml" || n = ".DS_Store" || n = ".git"
@@ -647,14 +646,18 @@ let invoke_status status msg =
   let lst = status () |> List.sort_uniq (String.compare) in 
   if List.length lst > 0 then
     print_endline (msg ^ " \n");
-  print_list lst
+  List.iter (fun x -> print_endline x) lst
 
 let status () = 
   let cur_tree = current_head_to_git_tree () in 
   if cur_tree = GitTree.empty 
-  then print_endline "There is no commit yet, you can first add files and then commit."
+  then print_endline 
+      "There is no commit yet, you can first add files and then commit."
   else 
-    invoke_status status1 "The following files are about to be commited:";
-  invoke_status status2 "The following files have been modified since the last commit:";
-  invoke_status status3 "The following files are untracked:"
+    invoke_status status1 
+      "The following files are about to be commited:";
+  invoke_status status2 
+    "The following files have been modified since the last commit:";
+  invoke_status status3 
+    "The following files are untracked:"
 

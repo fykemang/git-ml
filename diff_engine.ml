@@ -157,8 +157,12 @@ module Make (Obj : Object) = struct
 
   let rec diff lst lst' =
     let head, cmp, cmp', tail = optimize lst lst' in
-    [Eq tail] |> tl_append (proc_diff cmp cmp') |> tl_append [Eq head]
-
+    match head, tail with
+    | [], [] -> proc_diff cmp cmp'
+    | [], tl -> [Eq tl] |> tl_append (proc_diff cmp cmp')
+    | hd, [] -> proc_diff cmp cmp' |> tl_append [Eq hd]
+    | hd, tl -> [Eq tl] |> tl_append (proc_diff cmp cmp') |> tl_append [Eq hd]
+    
   let format_diff fmt t = 
     Format.fprintf fmt "[";
     List.iter (fun diff_obj -> 
