@@ -615,7 +615,7 @@ let rec find_file (address : string) (filename : string) (acc : string) (tree : 
   match tree with
   | Leaf -> failwith "there should be no Leaf in the tree"
   | Node (Tree_Object treeob, l) -> 
-    if address ^ treeob = ""  
+    if address ^ treeob = "" 
     then find_help_children filename "" acc l
     else if address = "" && treeob <> "" 
     then find_help_children filename treeob acc l 
@@ -648,7 +648,6 @@ let rec read_dir (dir : string) (prefix: string) =
   let rec read_dir_help (acc: string list) (handle : Unix.dir_handle) (prefix: string) =
     try
       let n = Unix.readdir handle in
-      print_endline n;
       if n = "." || n = ".." || n = ".git-ml" || n = ".DS_Store" || n = ".git"
       then read_dir_help acc handle prefix
       else if not (is_directory (prefix ^ n)) then
@@ -672,7 +671,7 @@ let status () =
   let cur_tree = current_head_to_git_tree () in 
   if cur_tree = GitTree.empty then print_endline "No commits"
   else 
-    invoke_status status1 "The following files are about to be commited:"
-(*invoke_status status2 "The following files have been modified since the last commit:";*)
-(*invoke_status status3 "The following files are untracked:" *)
+    invoke_status status1 "The following files are about to be commited:";
+  invoke_status status2 "The following files have been modified since the last commit:";
+  invoke_status status3 "The following files are untracked:"
 
