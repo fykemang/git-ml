@@ -502,7 +502,8 @@ let checkout_branch branch =
   checkout_path "."
 
 
-(** [ancestor_list branch] is the list of ancestor commits on branch [branch] *)
+(** [ancestor_list branch] is the list of ancestor commits on branch 
+    [branch]. *)
 let ancestor_list branch =  
   let rec ancestor_list_helper (acc:string list) (line_list:string list) =
     match line_list with 
@@ -521,7 +522,7 @@ let ancestor_list branch =
 (** [first_commit commit_list] is the first commit of a given [commit_list] 
     Requires:
     [commit_lst] is a valid zero terminating commit list, like one given from
-    [ancestor_list]*)
+    [ancestor_list]. *)
 let rec first_commit (commit_lst:string list) =
   match commit_lst with 
   | [] -> failwith "empty commit list error"
@@ -547,7 +548,7 @@ let rec compare_file_blob prefix f l acc =
   | _ -> failwith "A file must have one and only one blob child"
 
 (** [status2_help address acc tree] is the updated [acc'] after processing 
-    [tree].  *)
+    [tree]. *)
 let rec status2_help address acc tree = 
   (** [status2_help_children acc' l] is the updated [acc'] after processing 
       all treenodes in [l]. *)
@@ -582,8 +583,8 @@ let get_file's_blob_hash = function
   | [ Node (Blob b, l') ] -> b
   | _ -> failwith "A file must have one and only one blob child"
 
-(* [find_file address filename acc tree] is the content of [filename] in 
-   [tree]. *)
+(** [find_file address filename acc tree] is the content of [filename] in 
+    [tree]. *)
 let rec find_file address filename acc tree : string = 
   let rec find_help_children
       (filename: string)
@@ -615,11 +616,13 @@ let file_changed (tree: GitTree.t) (filename : string) (hash : string) : bool =
   let hash_in_head = find_file "" filename "" tree in 
   hash <> hash_str ("Blob " ^ hash_in_head)
 
-(** [status1] returns all the files that have been added but not yet commited. It
-    returns a list of files that are in index but not in the current HEAD commit *)
+(** [status1] returns all the files that have been added but not yet commited. 
+    It returns a list of files that are in index but not in the current HEAD 
+    commit. *)
 let status1 () : string list = 
   let idx = read_idx () in 
-  let updated_map = StrMap.filter (current_head_to_git_tree () |> file_changed) idx in 
+  let updated_map = 
+    StrMap.filter (current_head_to_git_tree () |> file_changed) idx in 
   let bindings = StrMap.bindings updated_map in
   List.split bindings |> fst
 
@@ -628,11 +631,11 @@ let status1 () : string list =
 let untracked filename = 
   (find_file "" filename "" (current_head_to_git_tree ())) = ""
 
-(** [read_dir dir prefix] reads the [dir] and returns all files that are untracked 
-    [prefix] is the accumulator for the file path*)
+(** [read_dir dir prefix] reads the [dir] and returns all files that are 
+    untracked [prefix] is the accumulator for the file path. *)
 let rec read_dir (dir : string) (prefix: string) =
-  (* prefix + filename = the whole path *)
-  let rec read_dir_help
+  (* prefix + filename = the whole path. *)
+  let rec read_dir_help 
       (acc: string list) 
       (handle : Unix.dir_handle)
       (prefix: string) =
@@ -649,12 +652,12 @@ let rec read_dir (dir : string) (prefix: string) =
     with End_of_file -> closedir handle; acc in
   read_dir_help [] (dir |> opendir) prefix
 
-(** [status3] traverses the working directory and list all the files that are untracked
-    comparing with the last commit*)
+(** [status3] traverses the working directory and list all the files that are 
+    untracked comparing with the last commit. *)
 let status3 () = read_dir "." ""
 
 (** [invoke_status status msg] is a helper for returning the message for each 
-    [status] condition, and [msg] is the message for that condition*)
+    [status] condition, and [msg] is the message for that condition. *)
 let invoke_status status msg = 
   let lst = status () |> List.sort_uniq (String.compare) in 
   if List.length lst > 0 then
