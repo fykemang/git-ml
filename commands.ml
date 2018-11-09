@@ -615,18 +615,21 @@ let file_changed (tree: GitTree.t) (filename : string) (hash : string) : bool =
   let hash_in_head = find_file "" filename "" tree in 
   hash <> hash_str ("Blob " ^ hash_in_head)
 
-(* added but not committed files: 
-   paths that have differences between the index file and the current HEAD commit *)
+(** [status1] returns all the files that have been added but not yet commited. It
+    returns a list of files that are in index but not in the current HEAD commit *)
 let status1 () : string list = 
   let idx = read_idx () in 
   let updated_map = StrMap.filter (current_head_to_git_tree () |> file_changed) idx in 
   let bindings = StrMap.bindings updated_map in
   List.split bindings |> fst
 
+(** [untracked filename] returns true if the [filename]'s content has been 
+    changed since the last commit. *)
 let untracked filename = 
   (find_file "" filename "" (current_head_to_git_tree ())) = ""
 
-(* dir on its own, just the directory name, prefix + dir is whole directory name *)
+(** [read_dir dir prefix] reads the [dir] and returns all files that are untracked 
+    [prefix] is the accumulator for the file path*)
 let rec read_dir (dir : string) (prefix: string) =
   (* prefix + filename = the whole path *)
   let rec read_dir_help 
@@ -646,8 +649,12 @@ let rec read_dir (dir : string) (prefix: string) =
     with End_of_file -> closedir handle; acc in
   read_dir_help [] (dir |> opendir) prefix
 
+(** [status3] traverses the working directory and list all the files that are untracked
+    comparing with the last commit*)
 let status3 () = read_dir "." ""
 
+(** [invoke_status status msg] is a helper for returning the message for each 
+    [status] condition, and [msg] is the message for that condition*)
 let invoke_status status msg = 
   let lst = status () |> List.sort_uniq (String.compare) in 
   if List.length lst > 0 then
