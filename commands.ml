@@ -291,7 +291,8 @@ let rec tree_hash_to_git_tree ?name:(name = "") hash_adr =
           Node (Blob (String.concat "\n" ((String.concat " " t)::tl)), [])::acc
         end
       | h::t -> failwith ("helper only operates on Tree_Object, File or Blob,\
-                           attempting to operate on: " ^ h ^ "| with rest of string:"
+                           attempting to operate on: " ^ h 
+                          ^ "| with rest of string:"
                           ^ (List.fold_left (fun a b -> a ^ " " ^ b) "" t)) in
   let spl = cat_string hash_adr |> String.split_on_char '\n' in
   let children = helper spl in Node (Tree_Object name, children)
@@ -309,6 +310,10 @@ let current_head_to_git_tree () =
   else let commit_hash = input_line (open_in (".git-ml/" ^ commit_path)) in
     cat_string commit_hash |> String.split_on_char '\n' |> List.hd 
     |> String.split_on_char ' ' |> List.tl |> List.hd |> tree_hash_to_git_tree
+
+let commit_hash_to_git_tree commit_hash =
+  cat_string commit_hash |> String.split_on_char '\n' |> List.hd 
+  |> String.split_on_char ' ' |> List.tl |> List.hd |> tree_hash_to_git_tree
 
 (** [idx_to_content ()] is a mapping from file name to file content in
     the repository based on index/git-ml *)
@@ -350,7 +355,8 @@ let rm address =
       end
     else
       print_endline
-        ("error: the following file has changes staged in the index: " ^ address)
+        ("error: the following file has changes staged in the index: " ^ 
+         address)
   with
   | Unix_error (ENOENT, name, ".git-ml") ->
     print_endline ("fatal: Not a git-ml repository" ^
@@ -431,26 +437,30 @@ let rm address =
   | Not_found -> print_endline ("fatal: " ^ address ^ 
                                 " did not match any stored or tracked files.")
 
+(** [overwrite_all_firles in subtree path tree] overwrites the repo with 
+    the files in tree with [path] corresponding to the folder path 
+    that [tree] represents*)
+let rec overwrite_all_files_in_subtree (path : string) = function
+  | [] -> ()
+  | Leaf :: t -> failwith "no leafs!"
+  | Node (Tree_Object s, lst) :: t -> begin
+      try 
+        mkdir (path ^ Filename.dir_sep ^ s) 0o700;
+        overwrite_all_files_in_subtree (path ^ Filename.dir_sep ^ s) lst;
+        overwrite_all_files_in_subtree path t;
+      with e ->
+        overwrite_all_files_in_subtree (path ^ Filename.dir_sep ^ s) lst;
+        overwrite_all_files_in_subtree path t;
+    end
+  | Node (File s, lst)::t -> let filename = s in 
+    let content = GitTree.string_of_git_object (GitTree.git_object_of_tree 
+                                                  (List.hd lst))
+    in output_string (open_out (path ^ "/" ^ filename)) content;
+    overwrite_all_files_in_subtree path t
+  | Node (_, lst)::t -> failwith "invalid object in GitTree"
+
+
 let checkout_path path = 
-  let rec overwrite_all_files_in_subtree (path : string) = function
-    | [] -> ()
-    | Leaf :: t -> failwith "no leafs!"
-    | Node (Tree_Object s, lst) :: t -> begin
-        try 
-          mkdir (path ^ Filename.dir_sep ^ s) 0o700;
-          overwrite_all_files_in_subtree (path ^ Filename.dir_sep ^ s) lst;
-          overwrite_all_files_in_subtree path t;
-        with e ->
-          overwrite_all_files_in_subtree (path ^ Filename.dir_sep ^ s) lst;
-          overwrite_all_files_in_subtree path t;
-      end
-    | Node (File s, lst)::t -> let filename = s in 
-      let content = GitTree.string_of_git_object (GitTree.git_object_of_tree 
-                                                    (List.hd lst))
-      in output_string (open_out (path ^ "/" ^ filename)) content;
-      overwrite_all_files_in_subtree path t
-    | Node (_, lst)::t -> failwith "invalid object in GitTree"
-  in
   let rec checkout_path_helper
       (subdir_lst : string list) 
       (tree : GitTree.t) : unit =
@@ -493,8 +503,8 @@ let checkout_branch branch =
         let last_hash = "00000000000000000000000000000000" in
         let oc_ref = open_out (".git-ml/logs/refs/heads/" ^ branch) in
         output_string oc_ref ("\n" ^ last_hash ^ " " ^ current_head_pointer
-                              ^ " Root Author <root@3110.org> commit: / 
-                            created new branch " ^ branch);
+                              ^ " Root Author <root@3110.org> commit: created new branch " 
+                              ^ branch);
     end
   else print_endline ("Switching to branch " ^ branch);
   checkout_path "."
@@ -504,7 +514,7 @@ let checkout_branch branch =
 let ancestor_list branch =  
   let rec ancestor_list_helper (acc:string list) (line_list:string list) =
     match line_list with 
-    | [] -> acc 
+    | [] -> List.rev acc 
     | h::t -> 
       let hash = (String.split_on_char ' ' h |> List.hd) in 
       ancestor_list_helper (hash::acc) t
@@ -516,23 +526,123 @@ let ancestor_list branch =
   ancestor_list_helper ((line_lst |> List.hd |> String.split_on_char ' ' |> 
                          List.tl |> List.hd)::[]) line_lst
 
-(** [first_commit commit_list] is the first commit of a given [commit_list] 
+(** [first_commit commit_list] is the first nonzero
+    commit of a given [commit_list] 
     Requires:
     [commit_lst] is a valid zero terminating commit list, like one given from
     [ancestor_list]*)
 let rec first_commit (commit_lst:string list) =
   match commit_lst with 
   | [] -> failwith "empty commit list error"
-  | h::zero::[] -> h
+  | h::zero::t when zero = "00000000000000000000000000000000" -> h 
+  | h::h2::[] -> failwith "error with commit_list in first_commit"
   | h::t -> first_commit t
 
+(** [first_common_commit commit_list target] is the target_hash if the 
+    target_hash is in the git_tree *)
 let rec first_common_commit commit_list target_hash =
-  failwith "unimplemented"
+  match commit_list with 
+  | [] -> "FAIL"
+  | h::t when h = target_hash -> target_hash
+  | h::t -> first_common_commit t target_hash
 
+(** [common_ancestor_trivial branch_a branch_b] is the last common ancesotor
+    between branch_a and branch_b 
+    Requires:
+      branch_b originated from branch_a or vice versa*)
+let common_ancestor_trivial branch_a branch_b : string = 
+  let anc_lst_a = ancestor_list branch_a in
+  let anc_lst_b = ancestor_list branch_b in 
+  let possible_ancestor = first_common_commit anc_lst_b 
+      (first_commit anc_lst_a) in (* this case is when a was branched off of b *)
+  if possible_ancestor = "FAIL" then (first_common_commit anc_lst_a 
+                                        (first_commit anc_lst_b))
+  else possible_ancestor
 
+(** [merge_base branches] gives the first common ancesstor between [branches]
+    Requires:
+    branches is of the form ["branch_a branch_b"] *)
+let merge_base branches = 
+  match String.split_on_char ' ' branches with 
+  | branch_a::branch_b::[] -> print_endline (common_ancestor_trivial branch_a 
+                                               branch_b)
+  | _ -> failwith "Invalid use of command merge-base"
 
-
-
+(** [merge_branch branch_a branch_b] merges branch_a onto branch_b
+    Requires:
+    current working branch is [branch_b]
+    [branch_a] is not the master branch*)
+let merge_branch branch_a branch_b = 
+  let rec merge_tree_list lst_a hash_a lst_b hash_b path =
+    match lst_a with 
+    | [] -> ()
+    | h::t when 
+        ((not (GitTree.git_object_in_tree_list 
+                 (GitTree.git_object_of_tree h) lst_b)))-> 
+      overwrite_all_files_in_subtree path (h::[]);
+      (merge_tree_list t hash_a lst_b hash_b path)
+    | Node (File s, (Node (Blob content_a, []))::[])::t -> begin 
+        let matching_tree_b = 
+          (GitTree.matching_tree_in_tree_lst (File s) lst_b) in 
+        match matching_tree_b with 
+        | Node (File s_b, (Node (Blob content_b, []))::[]) -> begin 
+            let write_string = if content_a = content_b then content_a
+              else (print_endline ("ERROR: merge conflict in " ^ s_b); 
+                    ">>>>>>> " ^ "branch: " ^ branch_a ^ "| commit: " ^ 
+                    hash_a ^ "\n" ^ content_a ^ 
+                    "\n" ^ "<<<<<<< " ^ "branch: " ^ branch_b ^ "| commit: " 
+                    ^ hash_b ^ "\n" 
+                    ^ content_b ^ "\n" ^ ">>>>>>>") in 
+            let oc = open_out (path ^ Filename.dir_sep ^ s) in
+            output_string oc write_string;
+            close_out oc;
+            (merge_tree_list t hash_a lst_b hash_b path)
+          end
+        | _ -> failwith "issue in matching_tree_in_tree_lst"
+      end
+    | Node (Tree_Object s, sublst_a)::t -> begin
+        let matching_tree_b = 
+          (GitTree.matching_tree_in_tree_lst (Tree_Object s) lst_b) in 
+        match matching_tree_b with 
+        | Node (Tree_Object s_b, sublst_b) -> 
+          (merge_tree_list sublst_a hash_a sublst_b 
+             hash_b (path ^ Filename.dir_sep ^ s));
+          (merge_tree_list t hash_a lst_b hash_b path) 
+        | _ -> 
+          failwith 
+            "literarly impossible if matching_tree_in_tree_lst works correctly"
+      end
+    | _ -> failwith "invalid GitObjects in git_tree merge_tree_list"
+  in
+  let com_anc_hash = common_ancestor_trivial branch_a branch_b in
+  if com_anc_hash = "FAIL" 
+  then print_endline 
+      "Cannot merge a branch onto a branch it didn't originate from!"
+  else 
+    try 
+      let hash_a = List.hd (ancestor_list branch_a) in
+      let hash_b = List.hd (ancestor_list branch_b) in
+      let tree_a = commit_hash_to_git_tree hash_a in 
+      let tree_b = commit_hash_to_git_tree hash_b in
+      let tree_com = commit_hash_to_git_tree (com_anc_hash) in
+      if branch_a = "master" then print_endline "ERROR: Cannot merge from master"
+      else 
+      if branch_b <> current_branch () 
+      then print_endline "ERROR: Must be on branch that you are merging to."
+      else 
+        match tree_a, tree_b with 
+        | Node (Tree_Object _, lst_a), Node (Tree_Object _, lst_b) -> 
+          merge_tree_list lst_a hash_a lst_b hash_b ".";
+          print_endline "--Merge Completed--";
+          print_endline 
+            "Fix any merge conflicts, and stage and commit your changes to finalize the merge"
+        | _ -> failwith "Invalid form on GitTree from branch a or b"
+    with e -> print_endline "Issue with merge, make sure all changes are staged 
+    and commited on the current branch before you attempt a merge."
+let merge_branch_command branches = 
+  match String.split_on_char ' ' branches with 
+  | branch_a::branch_b::[] -> merge_branch branch_a branch_b
+  | _ -> failwith "Invalid use of command merge-base"
 
 
 
@@ -672,6 +782,7 @@ let invoke_status status msg =
 
 let status () = 
   invoke_status status1 "The following files are about to be commited:"
-(*invoke_status status2 "The following files have been modified since the last commit:";*) 
+(*invoke_status status2 "The following files have been modified since the last 
+  commit:";*) 
 (*invoke_status status3 "The following files are untracked:" *)
 

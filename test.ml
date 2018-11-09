@@ -24,7 +24,7 @@ let make_remove_blob_test
     (input: string)
     (expected_output : string) : test =
   name >:: (fun _ ->
-      assert_equal expected_output (Util.remove_blob input) 
+      assert_equal expected_output (Util.remove_object_tag "Blob" input) 
         ~printer: (fun x -> x))
 
 let make_size_test

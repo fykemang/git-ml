@@ -18,7 +18,7 @@ echo "This is deep in a directory. This is 3110." >> subfile.txt
 cd ../../..
 ./main.byte add bash_test
 ./main.byte commit -m "bash commit"
-if ./main.byte log | grep -q '00000000000000000000000000000000 4bcf7c7642adf781f1492a52a9802143'; then
+if ./main.byte log | grep -q '00000000000000000000000000000000 fa9879a06e8e58e366830f49bef6b7b8'; then
 echo "----TEST PASS----"
 else 
 echo "!----LOG TEST FAILURE----!" 
@@ -37,13 +37,13 @@ else
 echo "!----OBJECTS TEST FAILURE----!" 
 fi
 
-if ./main.byte log | grep -q '4bcf7c7642adf781f1492a52a9802143 78fbc36a5f1ef26fb0cbf3a4f05a3a85'; then
+if ./main.byte log | grep -q 'fa9879a06e8e58e366830f49bef6b7b8 df20e5d1d6ad74925c8258d1addf87c1'; then
 echo "----TEST PASS----"
 else 
 echo "!----LOG TEST 2 FAILURE----!" 
 fi
 
-if cat .git-ml/refs/heads/master | grep -q '78fbc36a5f1ef26fb0cbf3a4f05a3a85'; then
+if cat .git-ml/refs/heads/master | grep -q 'df20e5d1d6ad74925c8258d1addf87c1'; then
 echo "----TEST PASS----"
 else 
 echo "!----HEAD CHECK TEST FAILURE----!" 
@@ -57,10 +57,31 @@ else
 echo "!----CAT FILE OVERWRITE TEST FAILURE----!" 
 fi
 
-if ./main.byte log | grep -q '78fbc36a5f1ef26fb0cbf3a4f05a3a85 d537689c1449b79236d457665d4a7cf9'; then
+if ./main.byte log | grep -q 'df20e5d1d6ad74925c8258d1addf87c1 1e4aeacece3712f713a94845caec11fb'; then
 echo "----TEST PASS----"
 else 
 echo "!----LOG TEST 3 FAILURE----!" 
+fi
+
+./main.byte checkout -b newbranch
+rm -r bash_test/sub
+echo "This is from another branch this is 3110" > bash_test/shallowfile.txt
+./main.byte add bash_test
+./main.byte commit -m "newbranch commit"
+./main.byte checkout -b master
+
+if cat bash_test/shallowfile.txt | grep -q 'This is from another branch'; then
+echo "!--BRANCH TEST FAILURE--!"
+else
+echo "----TEST PASS----"
+fi
+
+./main.byte checkout -b newbranch
+
+if cat bash_test/shallowfile.txt | grep -q 'This is from another branch'; then
+echo "----TEST PASS----"
+else
+echo "!--BRANCH TEST FAILURE--!"
 fi
 
 

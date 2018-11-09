@@ -101,6 +101,30 @@ let cmd_list = [
             and the repository.";
     default = Parse.Unit (diff);
     opts = []
+  };
+  {
+    name = "merge-base";
+    usage = "Gives the most recent common ancestor of the two branches";
+    default = Parse.Unit (fun () -> ());
+    opts = [
+      {
+        name = "-b";
+        usage = "Gives the most recent common ancestor of the two branches as \"branch_one branch two\"";
+        action = Parse.String (merge_base);
+      }
+    ]
+  };
+  {
+    name = "merge-branch";
+    usage = "merge-branch -b \"branch_a branch_b\" merges branch_a onto branch_b";
+    default = Parse.Unit (fun () -> ());
+    opts = [
+      {
+        name = "-b";
+        usage = "merge-branch -b \"branch_a branch_b\" merges branch_a onto branch_b";
+        action = Parse.String (merge_branch_command);
+      }
+    ]
   }
 ]
 

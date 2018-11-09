@@ -85,3 +85,14 @@ val mem_hash: string -> t -> bool
 
 (** [git_object_of_tree tree] is the [git_object] at the root of [tree] *)
 val git_object_of_tree: t -> git_object
+
+(** [git_object_of_tree_list target lst] is true if a Node with [git_object]
+    equal to target is in the lst *)
+val git_object_in_tree_list: git_object -> t list -> bool
+
+(** [matching_tree_in_tree_lst target lst] is the tree in lst with GitObject 
+    target *)
+val matching_tree_in_tree_lst: git_object -> t list -> t
+
+(** [value t] gives the [git_object] at the root node of [GitTree.t]. *)
+val value: t -> git_object 

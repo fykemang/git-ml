@@ -35,6 +35,10 @@ let rec size = function
   | Node (Blob _, _) -> 1
   | Node (_, lst) -> 1 + List.fold_left (fun acc y -> (size y) + acc) 0 lst
 
+let value = function
+  | Leaf -> raise (EmptyTreeException "Empty tree does not have value")
+  | Node (o,lst) -> o
+
 (** [get_subdirectory_helper subdirectory lst] is the [GitTree] constructed 
     from [subdirectory] and [lst]. *)
 let rec get_subdirectory_helper (subdirectory:string) = function
@@ -165,3 +169,16 @@ let rec mem_hash (hash : string) (t : t) : bool =
     | Blob s -> let obj_hash = ("Blob " ^ s) |> hash_str in
       if obj_hash = hash then true
       else List.fold_left (fun acc t -> mem_hash hash t) false lst
+
+let rec git_object_in_tree_list (target_o:git_object) (tree_lst:t list) : bool =
+  match tree_lst with 
+  | [] -> false
+  | (Node (o, lst))::t when o = target_o -> true
+  | h::t -> git_object_in_tree_list target_o t 
+
+let rec matching_tree_in_tree_lst (target_o:git_object) (tree_lst:t list) =
+  match tree_lst with 
+  | [] -> failwith "target not found"
+  | (Node (o, lst))::t when o = target_o -> (Node (o,lst))
+  | h::t -> matching_tree_in_tree_lst target_o t 
+

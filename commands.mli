@@ -63,9 +63,24 @@ val commit_command: string -> unit
     message ["no commit message"] on branch ["branch"] *)
 val commit_command_default: unit -> unit
 
+(** [checkout_path folderpath] restores the folderpath to the last commit *)
 val checkout_path: string -> unit
 
 val checkout_branch: string -> unit
+
 (** [diff ()] prints out any differences between files in the repository
     and the working directory *)
 val diff : unit -> unit
+
+(** [merge_base branches] gives the first common ancesstor between [branches]
+    Requires:
+    branches is of the form ["branch_a branch_b"] *)
+val merge_base: string -> unit
+
+(** [merge_branch_command branches] merges [branches = "branch_a branch_b"] 
+    branch b into branch a
+    Requires:
+        the current working branch is branch_a
+        branch_b is not the master branch
+        branches is of the form "branch_a branch_b"*)
+val merge_branch_command: string -> unit
