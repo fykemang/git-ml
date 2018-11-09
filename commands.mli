@@ -20,10 +20,6 @@ val hash_object_default: string -> unit
     branch *)
 val log : unit -> unit
 
-(** [ls_tree s] is the structure of a tree given [s] its hashed
-    hex representation. *)
-val ls_tree : string -> string
-
 (** [add address] writes the file address and the the file content hash to the
     index. If [address] is the address of a folder, all files and subfolders 
     inside will be written to the index and added to the objects directory.

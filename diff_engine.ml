@@ -84,7 +84,8 @@ module Make (Obj : Object) = struct
     let obj_to_indice = map_to_indice lst in
     subseq_helper obj_to_indice lst'
 
-  (** [fold_n f acc n lst] is f (... (f (f a )))  *)
+  (** [fold_n f acc n lst] folds [lst] [n] times applying [f]
+      on each iteration *)
   let rec fold_n f ?acc:(acc=[]) n = function
     | [] -> acc, []
     | hd::tl as lst -> if n = 0 then acc, lst 
@@ -108,7 +109,38 @@ module Make (Obj : Object) = struct
     | [] -> []
     | hd::tl as lst -> if n = 0 then lst else drop (n - 1) tl
 
-  let rec diff lst lst' =
+  (** [match_len_front ?acc lst lst'] is int [acc] representing
+      number of elements from start of lst and lst' that are common with each 
+      other *)
+  let rec match_len_front ?acc:(acc=0) lst lst'  =
+    match lst, lst' with
+    | h::t, h'::t' when h = h' -> match_len_front t t' ~acc:(acc + 1)
+    | _ -> acc
+
+  (** [split lst i] is (fst, snd) where fst is elements [0..i-1]
+      and snd is elements [i..[List.length lst]] *)
+  let split lst i = (slice 0 (i - 1) lst, drop i lst)
+
+  (** [optimize lst lst'] is (head, cmp, cmp', tail) where [head] is
+      a list of all elements common to the start of [lst] and [lst']
+      and [tail] is a list of all elements common the end of [lst] and [lst']. 
+      [cmp] is [lst] without [head] and [tail] and [cmp'] is [lst'] without
+      [head] and [tail]. *)
+  let optimize lst lst' =
+    let i = match_len_front lst lst' in
+    let fst, snd = split lst i in
+    let fst', snd' = split lst' i in
+    let rev_snd = List.rev snd in
+    let rev_snd' = List.rev snd' in
+    let k = match_len_front rev_snd rev_snd' in
+    let kfst, ksnd = split rev_snd k in
+    let kfst', ksnd' = split rev_snd' k in
+    (fst, List.rev ksnd, List.rev ksnd', List.rev kfst)
+
+  (** [proc_diff lst lst'] compares [lst] and [lst'] returning 
+      a list of diff_objects which represent the differences
+      between the two lists *)
+  let rec proc_diff lst lst' = 
     match lst, lst' with
     | [], [] -> []
     | _, _ ->
@@ -119,11 +151,19 @@ module Make (Obj : Object) = struct
         | lst, [] -> [Del lst]
         | lst, lst' -> [Del lst; Add lst']
       else
-        diff (drop (st_lst + seq) lst) (drop (st_lst' + seq) lst') |>
+        proc_diff (drop (st_lst + seq) lst) (drop (st_lst' + seq) lst') |> 
         tl_append [Eq (slice st_lst' (st_lst' + seq - 1) lst')] |>
-        tl_append (diff (slice 0 (st_lst - 1) lst) (slice 0 (st_lst' - 1) lst'))
+        tl_append (proc_diff (slice 0 (st_lst - 1) lst) 
+                     (slice 0 (st_lst' - 1) lst'))
 
-
+  let rec diff lst lst' =
+    let head, cmp, cmp', tail = optimize lst lst' in
+    match head, tail with
+    | [], [] -> proc_diff cmp cmp'
+    | [], tl -> [Eq tl] |> tl_append (proc_diff cmp cmp')
+    | hd, [] -> proc_diff cmp cmp' |> tl_append [Eq hd]
+    | hd, tl -> [Eq tl] |> tl_append (proc_diff cmp cmp') |> tl_append [Eq hd]
+    
   let format_diff fmt t = 
     Format.fprintf fmt "[";
     List.iter (fun diff_obj -> 
