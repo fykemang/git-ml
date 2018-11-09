@@ -621,7 +621,8 @@ let rec find_file (address : string) (filename : string) (acc : string) (tree : 
     then find_help_children filename treeob acc l 
     else find_help_children filename (address ^ "/" ^ treeob) acc l
   | Node (File f, l) -> 
-    if (address ^ "/" ^ f) = filename then (get_file's_blob_hash l) else ""
+    let add = if address = "" then f else address ^ "/" ^ f in
+    if add = filename then (get_file's_blob_hash l) else ""
   | Node (Blob b, l) -> failwith "cannot reach any blob"
   | Node (Commit c, l) -> failwith "cannot reach any commit"
   | Node (Ref r, l) -> failwith "cannot reach any ref"
@@ -670,7 +671,7 @@ let status () =
   let cur_tree = current_head_to_git_tree () in 
   if cur_tree = GitTree.empty then print_endline "No commits"
   else 
-    (*invoke_status status1 "The following files are about to be commited:";*)
-    invoke_status status2 "The following files have been modified since the last commit:";
+    invoke_status status1 "The following files are about to be commited:";
+  invoke_status status2 "The following files have been modified since the last commit:";
   invoke_status status3 "The following files are untracked:"
 
