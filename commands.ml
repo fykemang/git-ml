@@ -544,16 +544,9 @@ let compare_files blob_obj file_name =
 
 let rec compare_file_blob prefix f l acc = 
   match l with
-  | [Node (Blob b, l')] -> begin
-      if prefix ^ f = "" 
-      then if compare_files b ""
-        then acc else f::acc
-      else if prefix = "" 
-      then if compare_files b f 
-        then acc else f::acc
-      else if compare_files b (prefix ^ "/" ^ f)
-      then acc else f::acc
-    end
+  | [Node (Blob b, l')] -> 
+    let add = if prefix = "" then f else  (prefix ^ "/" ^ f) in
+    if compare_files b add then acc else f::acc
   | _ -> failwith "A file must have one and only one blob child"
 
 let rec status2_help address acc tree = 
@@ -573,11 +566,8 @@ let rec status2_help address acc tree =
   match tree with
   | Leaf -> failwith "there should be no Leaf in the tree"
   | Node (Tree_Object treeob, l) -> 
-    if address ^ treeob = "" 
-    then status2_help_children "" acc l 
-    else if address = "" && treeob <> "" 
-    then status2_help_children treeob acc l 
-    else status2_help_children (address ^ "/" ^ treeob) acc l
+    let add = if address = "" then treeob else (address ^ "/" ^ treeob) in
+    status2_help_children add acc l
   | Node (File f, l) -> compare_file_blob address f l acc
   | Node (Blob b, l) -> failwith "cannot reach any blob"
   | Node (Commit c, l) -> failwith "cannot reach any commit"
@@ -615,11 +605,8 @@ let rec find_file (address : string) (filename : string) (acc : string) (tree : 
   match tree with
   | Leaf -> failwith "there should be no Leaf in the tree"
   | Node (Tree_Object treeob, l) -> 
-    if address ^ treeob = "" 
-    then find_help_children filename "" acc l
-    else if address = "" && treeob <> "" 
-    then find_help_children filename treeob acc l 
-    else find_help_children filename (address ^ "/" ^ treeob) acc l
+    let add = if address = "" then treeob else (address ^ "/" ^ treeob) in
+    find_help_children filename add acc l
   | Node (File f, l) -> 
     let add = if address = "" then f else address ^ "/" ^ f in
     if add = filename then (get_file's_blob_hash l) else ""
