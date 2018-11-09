@@ -630,6 +630,10 @@ let file_changed (tree: GitTree.t) (filename : string) (hash : string) : bool =
   let hash_in_head = find_file "" filename tree in 
   hash <> hash_str ("Blob " ^ hash_in_head)
 
+let file_changed (tree: GitTree.t) (filepath : string) (hash : string) : bool = 
+  let hash_in_head = find_file "" filepath tree in 
+  hash <> hash_str ("Blob " ^ hash_in_head)
+
 (* added but not committed files: 
    paths that have differences between the index file and the current HEAD commit *)
 let status1 () : string list = 
