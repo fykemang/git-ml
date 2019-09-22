@@ -1,4 +1,12 @@
 # Git-ml
+ 
+ Simple version control system implemented in OCaml.
+ 
+ ## Features
+ 
+ - Branches
+ - Staging and Commits
+ - Basic Diffs
 
 ## Installation
 
