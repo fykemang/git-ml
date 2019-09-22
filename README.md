@@ -1,6 +1,6 @@
 # Git-ml
 
------- INSTALL GUIDE ------
+## Installation
 
 The guide is built to be run on the CS 3110 Ubunutu VM, or an Ubuntu distro. 
 This might work on OS X, we give no assurances. Do not try this with windows. This is far more likely to work on your toaster
@@ -45,7 +45,7 @@ Here are some mini tutorials:
 
 
 
-__Working with branches__
+## Working with Branches
 
 to switch to an existing branch, or create a new branch use
 
@@ -63,7 +63,7 @@ to go back to master. Any removed files, or any changes will be restored. That i
 
 
 
-__status and diffs__
+## Status and Diffs
 
 Go ahead and add some files with 
 
@@ -107,7 +107,7 @@ git-ml diff
 
 
 
-__branching and checkout__
+## Checkout
 
 Before trying checkout, try the following 
 
@@ -123,9 +123,6 @@ Make some changes, stage and commit those changes, do git-ml log to see your ref
 Delete some files, rewrite some files, stage and commit those changes. Then try
 
 git checkout -b master
-
-Watch in wonder as your repo is restored to what it used to be. 
-
 
 
 
